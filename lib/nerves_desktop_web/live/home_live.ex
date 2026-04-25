@@ -29,7 +29,7 @@ defmodule NervesDesktopWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:devices}>
-      <div class="p-4 md:p-8 max-w-7xl mx-auto">
+      <div class="p-4 md:p-8 w-full">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">

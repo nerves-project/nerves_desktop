@@ -110,7 +110,7 @@ defmodule NervesDesktopWeb.BurnerLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:burner}>
-      <div class="p-4 md:p-8 max-w-7xl mx-auto">
+      <div class="p-4 md:p-8 w-full">
         <header class="mb-10">
           <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
             <div class="p-2 bg-primary/10 rounded-xl text-primary">

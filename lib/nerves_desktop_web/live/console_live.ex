@@ -108,7 +108,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:console}>
-      <div class="p-4 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
+      <div class="p-4 md:p-8 w-full h-full flex flex-col">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
@@ -126,9 +126,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
             <div class="flex flex-col gap-1 flex-1 md:flex-none">
               <label class="text-[10px] uppercase font-bold text-gray-400 px-1">Target Device</label>
               <select
+                name="ip"
                 phx-change="select_device"
                 class="select select-sm select-ghost focus:bg-transparent border-none focus:ring-0 font-bold text-gray-700 min-w-[240px]"
               >
+
                 <option value="">Select a device...</option>
                 <%= for device <- @devices do %>
                   <option value={device.ip} selected={device.ip == @selected_ip}>

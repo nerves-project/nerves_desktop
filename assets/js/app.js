@@ -25,6 +25,7 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/nerves_desktop"
 import topbar from "../vendor/topbar"
 import { Terminal } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
@@ -60,7 +61,16 @@ let Hooks = {
         }
       })
 
+      this.fitAddon = new FitAddon()
+      this.term.loadAddon(this.fitAddon)
+
       this.term.open(this.el)
+      this.fitAddon.fit()
+
+      this.resizeObserver = new ResizeObserver(() => {
+        this.fitAddon.fit()
+      })
+      this.resizeObserver.observe(this.el)
       
       this.handleEvent("print", ({data}) => {
         this.term.write(data)
@@ -71,6 +81,9 @@ let Hooks = {
       })
     },
     destroyed() {
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect()
+      }
       if (this.term) {
         this.term.dispose()
       }
