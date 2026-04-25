@@ -19,12 +19,9 @@ defmodule NervesDesktopWeb.Layouts do
     <div class="flex h-screen bg-base-200/50 overflow-hidden">
       <!-- Sidebar -->
       <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shadow-xl shadow-gray-200/50 z-20 transition-all duration-300 group">
-        <div class="p-6 flex items-center justify-between">
+        <div class="p-6">
           <a href="/" class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <div class="p-2 bg-primary rounded-xl shadow-lg shadow-primary/30 shrink-0">
-              <.icon name="hero-cpu-chip" class="w-6 h-6 text-white" />
-            </div>
-            <span class="text-xl font-black tracking-tight text-gray-900">Nerves</span>
+            <img src={~p"/images/nerves_landscape.svg"} class="h-10 w-auto" alt="Nerves" />
           </a>
         </div>
 
@@ -42,8 +39,8 @@ defmodule NervesDesktopWeb.Layouts do
 
         <div class="p-6 border-t border-gray-50 overflow-hidden">
           <div class="flex items-center gap-3 px-2 py-3 bg-gray-50 rounded-2xl border border-gray-100 whitespace-nowrap">
-            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-              ND
+            <div class="w-8 h-8 shrink-0">
+              <img src={~p"/images/nerves_icon.svg"} class="w-full h-full" alt="ND" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-xs font-bold text-gray-900 truncate">Nerves Desktop</p>
