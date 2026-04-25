@@ -40,6 +40,19 @@ let Hooks = {
       this.el.textContent = dt.toLocaleTimeString(undefined, options)
     }
   },
+  TauriOpen: {
+    mounted() {
+      this.el.addEventListener("click", (e) => {
+        e.preventDefault()
+        const url = this.el.getAttribute("href")
+        if (window.__TAURI__) {
+          window.__TAURI__.opener.open(url)
+        } else {
+          window.open(url, "_blank")
+        }
+      })
+    }
+  },
   Xterm: {
     mounted() {
       this.term = new Terminal({

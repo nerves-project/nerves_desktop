@@ -38,7 +38,7 @@ fn create_window(app_handle: &tauri::AppHandle) {
     let url = tauri::WebviewUrl::External("http://127.0.0.1:4000".parse().unwrap());
     tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
         .title("Nerves Desktop")
-        .inner_size(800.0, 600.0)
+        .maximized(true)
         .build()
         .unwrap();
 }

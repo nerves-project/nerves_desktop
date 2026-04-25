@@ -15,10 +15,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
     {:ok,
      socket
      |> assign(devices: NervesDesktop.Discovery.get_devices())
+     |> assign(ssh_pid: pid)
+     |> assign(status: :disconnected)
      |> assign(selected_ip: nil)
      |> assign(selected_name: nil)
-     |> assign(status: :disconnected)
-     |> assign(ssh_pid: pid)}
+     |> assign(password: "")}
   end
 
   @impl true
@@ -33,7 +34,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(selected_name: name)
         |> then(fn s -> 
           if connected?(s) do
-            # Small delay to ensure xterm is ready on the client
             Process.send_after(self(), :auto_connect, 500)
             s
           else
@@ -67,26 +67,31 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
-  def handle_event("select_device", %{"ip" => ip}, socket) do
+  def handle_event("validate_connection", %{"connection" => %{"ip" => ip, "password" => password}}, socket) do
     device = Enum.find(socket.assigns.devices, &(&1.ip == ip))
-    {:noreply, assign(socket, selected_ip: ip, selected_name: device && (device.name || device.hostname))}
-  end
-
-  @impl true
-  def handle_event("connect", _params, %{assigns: %{selected_ip: nil}} = socket) do
-    {:noreply, put_flash(socket, :error, "Please select a device first.")}
+    {:noreply, 
+     socket 
+     |> assign(selected_ip: ip)
+     |> assign(password: password)
+     |> assign(selected_name: device && (device.name || device.hostname))}
   end
 
   @impl true
   def handle_event("connect", _params, socket) do
-    push_event(socket, "print", %{data: "\r\n\x1B[1;33mConnecting to #{socket.assigns.selected_ip}...\x1B[0m\r\n"})
-    
-    SSHConnection.connect(
-      socket.assigns.ssh_pid, 
-      socket.assigns.selected_ip
-    )
+    if socket.assigns.selected_ip in [nil, ""] do
+      {:noreply, put_flash(socket, :error, "Please select a device first.")}
+    else
+      push_event(socket, "print", %{data: "\r\n\x1B[1;33mConnecting to #{socket.assigns.selected_ip}...\x1B[0m\r\n"})
+      
+      SSHConnection.connect(
+        socket.assigns.ssh_pid, 
+        socket.assigns.selected_ip,
+        "root",
+        if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
+      )
 
-    {:noreply, assign(socket, status: :connected)}
+      {:noreply, assign(socket, status: :connected)}
+    end
   end
 
   @impl true
@@ -122,43 +127,53 @@ defmodule NervesDesktopWeb.ConsoleLive do
             </p>
           </div>
 
-          <div class="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto">
-            <div class="flex flex-col gap-1 flex-1 md:flex-none">
-              <label class="text-[10px] uppercase font-bold text-gray-400 px-1">Target Device</label>
-              <select
-                name="ip"
-                phx-change="select_device"
-                class="select select-sm select-ghost focus:bg-transparent border-none focus:ring-0 font-bold text-gray-700 min-w-[240px]"
-              >
+          <div class="flex items-center gap-4 bg-white px-8 py-3 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto">
+            <.form 
+              :let={f}
+              for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)} 
+              phx-change="validate_connection" 
+              phx-submit="connect" 
+              class="flex flex-wrap items-center gap-4"
+            >
+              <div class="w-fit min-w-[160px]">
+                <.input
+                  field={f[:ip]}
+                  type="select"
+                  label="Target Device"
+                  disabled={@status != :disconnected}
+                  options={[{"Select a device...", ""} | Enum.map(@devices, &({&1.name || &1.hostname, &1.ip}))]}
+                />
+              </div>
 
-                <option value="">Select a device...</option>
-                <%= for device <- @devices do %>
-                  <option value={device.ip} selected={device.ip == @selected_ip}>
-                    {device.name || device.hostname} ({device.ip})
-                  </option>
+              <div class="w-32">
+                <.input
+                  field={f[:password]}
+                  type="password"
+                  label="SSH Password"
+                  disabled={@status != :disconnected}
+                  placeholder="optional"
+                />
+              </div>
+
+              <div class="flex items-center mb-2 mt-6">
+                <%= if @status == :disconnected do %>
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-md rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-8"
+                  >
+                    <.icon name="hero-bolt" class="w-4 h-4" /> Connect
+                  </button>
+                <% else %>
+                  <button
+                    type="button"
+                    phx-click="disconnect"
+                    class="btn btn-error btn-outline btn-md rounded-xl flex items-center gap-2 px-8"
+                  >
+                    <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
+                  </button>
                 <% end %>
-              </select>
-            </div>
-
-            <div class="h-10 w-px bg-gray-100 hidden sm:block"></div>
-
-            <div class="flex items-center">
-              <%= if @status == :disconnected do %>
-                <button
-                  phx-click="connect"
-                  class="btn btn-primary btn-sm rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 h-10 px-8"
-                >
-                  <.icon name="hero-bolt" class="w-4 h-4" /> Connect
-                </button>
-              <% else %>
-                <button
-                  phx-click="disconnect"
-                  class="btn btn-error btn-outline btn-sm rounded-xl flex items-center gap-2 h-10 px-8"
-                >
-                  <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
-                </button>
-              <% end %>
-            </div>
+              </div>
+            </.form>
           </div>
         </header>
 
