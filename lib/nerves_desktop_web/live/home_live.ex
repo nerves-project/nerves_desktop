@@ -28,7 +28,7 @@ defmodule NervesDesktopWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} active_tab={:devices}>
       <div class="p-4 md:p-8 max-w-7xl mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
@@ -57,10 +57,16 @@ defmodule NervesDesktopWeb.HomeLive do
             <div class="h-8 w-px bg-gray-100"></div>
             <div class="flex flex-col items-end">
               <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Last Scan</span>
-              <span class="text-sm font-mono font-bold text-gray-900">
+              <time
+                id="last-scan-time"
+                datetime={DateTime.to_iso8601(@last_scan_at)}
+                phx-hook="LocalTime"
+                class="text-sm font-mono font-bold text-gray-900"
+              >
                 {Calendar.strftime(@last_scan_at, "%H:%M:%S")}
-              </span>
+              </time>
             </div>
+
             <button
               phx-click="scan_now"
               class="btn btn-primary btn-md shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"

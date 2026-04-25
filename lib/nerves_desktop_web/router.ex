@@ -19,6 +19,7 @@ defmodule NervesDesktopWeb.Router do
 
     live "/", HomeLive
     live "/console", ConsoleLive
+    live "/burner", BurnerLive
   end
 
   # Other scopes may use custom stacks.

@@ -11,6 +11,7 @@ defmodule NervesDesktopWeb.Layouts do
   Renders your app layout.
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :active_tab, :atom, default: :devices, values: [:devices, :console, :burner]
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -28,11 +29,14 @@ defmodule NervesDesktopWeb.Layouts do
         </div>
 
         <nav class="flex-1 px-4 space-y-2 mt-4">
-          <.nav_link href={~p"/"} icon="hero-list-bullet" active={@conn.request_path == "/"}>
+          <.nav_link href={~p"/"} icon="hero-list-bullet" active={@active_tab == :devices}>
             Devices
           </.nav_link>
-          <.nav_link href={~p"/console"} icon="hero-command-line" active={@conn.request_path == "/console"}>
+          <.nav_link href={~p"/console"} icon="hero-command-line" active={@active_tab == :console}>
             Device Console
+          </.nav_link>
+          <.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
+            Firmware Burner
           </.nav_link>
         </nav>
 

@@ -29,6 +29,16 @@ import { Terminal } from '@xterm/xterm'
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 let Hooks = {
+  LocalTime: {
+    mounted() {
+      this.updated()
+    },
+    updated() {
+      const dt = new Date(this.el.getAttribute("datetime"))
+      const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+      this.el.textContent = dt.toLocaleTimeString(undefined, options)
+    }
+  },
   Xterm: {
     mounted() {
       this.term = new Terminal({

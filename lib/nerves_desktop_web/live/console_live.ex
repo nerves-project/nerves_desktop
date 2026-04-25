@@ -107,7 +107,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} active_tab={:console}>
       <div class="p-4 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
