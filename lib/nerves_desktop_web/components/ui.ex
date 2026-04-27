@@ -87,6 +87,71 @@ defmodule NervesDesktopWeb.UI do
   end
 
   @doc """
+  Renders an SSH connection form for selecting a device and entering a password.
+  """
+  attr :devices, :list, required: true
+  attr :selected_ip, :string, required: true
+  attr :password, :string, required: true
+  # :disconnected or other
+  attr :status, :atom, required: true
+  attr :on_change, :string, default: "validate_connection"
+  attr :on_submit, :string, default: "connect"
+  attr :on_disconnect, :string, default: "disconnect"
+
+  def ssh_connection_form(assigns) do
+    ~H"""
+    <.form
+      :let={f}
+      for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
+      phx-change={@on_change}
+      phx-submit={@on_submit}
+      class="flex flex-wrap items-end gap-3"
+    >
+      <div class="w-fit min-w-[140px]">
+        <.input
+          field={f[:ip]}
+          type="select"
+          label="Target Device"
+          disabled={@status != :disconnected}
+          options={[
+            {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.ip})
+          ]}
+        />
+      </div>
+
+      <div class="w-28">
+        <.input
+          field={f[:password]}
+          type="password"
+          label="SSH Password"
+          disabled={@status != :disconnected}
+          placeholder="optional"
+        />
+      </div>
+
+      <div class="flex items-center mb-3">
+        <%= if @status == :disconnected do %>
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-6 h-9"
+          >
+            <.icon name="hero-bolt" class="w-4 h-4" /> Connect
+          </button>
+        <% else %>
+          <button
+            type="button"
+            phx-click={@on_disconnect}
+            class="btn btn-error btn-outline btn-sm rounded-xl flex items-center gap-2 px-6 h-9"
+          >
+            <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
+          </button>
+        <% end %>
+      </div>
+    </.form>
+    """
+  end
+
+  @doc """
   Renders a navigation link for the sidebar.
   """
   attr :href, :string, required: true

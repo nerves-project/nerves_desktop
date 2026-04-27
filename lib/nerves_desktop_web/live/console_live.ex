@@ -118,57 +118,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
         subtitle="Interactive terminal via system SSH"
       >
         <:actions>
-          <div class="flex items-center gap-4 bg-white px-8 py-3 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto">
-            <.form
-              :let={f}
-              for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
-              phx-change="validate_connection"
-              phx-submit="connect"
-              class="flex flex-wrap items-center gap-4"
-            >
-              <div class="w-fit min-w-[160px]">
-                <.input
-                  field={f[:ip]}
-                  type="select"
-                  label="Target Device"
-                  disabled={@status != :disconnected}
-                  options={[{"Select a device...", ""} | Enum.map(@devices, &({&1.name || &1.hostname, &1.ip}))]}
-                />
-              </div>
-
-              <div class="w-32">
-                <.input
-                  field={f[:password]}
-                  type="password"
-                  label="SSH Password"
-                  disabled={@status != :disconnected}
-                  placeholder="optional"
-                />
-              </div>
-
-              <div class="flex items-center mb-2 mt-6">
-                <%= if @status == :disconnected do %>
-                  <button
-                    type="submit"
-                    class="btn btn-primary btn-md rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-8"
-                  >
-                    <.icon name="hero-bolt" class="w-4 h-4" /> Connect
-                  </button>
-                <% else %>
-                  <button
-                    type="button"
-                    phx-click="disconnect"
-                    class="btn btn-error btn-outline btn-md rounded-xl flex items-center gap-2 px-8"
-                  >
-                    <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
-                  </button>
-                <% end %>
-              </div>
-            </.form>
-          </div>
+          <UI.ssh_connection_form
+            devices={@devices}
+            selected_ip={@selected_ip}
+            password={@password}
+            status={@status}
+          />
         </:actions>
       </UI.page_header>
-
       <div class="flex-1 flex flex-col min-h-0">
           <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 h-[600px]">
             <!-- Terminal Header -->
