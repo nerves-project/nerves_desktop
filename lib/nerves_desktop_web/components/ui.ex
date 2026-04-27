@@ -13,10 +13,10 @@ defmodule NervesDesktopWeb.UI do
   def scanning_status(assigns) do
     ~H"""
     <div class={[
-      "flex items-center gap-4 bg-white px-3 py-2 rounded-2xl shadow-sm border border-gray-100",
+      "flex flex-nowrap items-center justify-between lg:justify-start gap-4 lg:gap-6 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100",
       @class
     ]}>
-      <div class="flex flex-col items-end">
+      <div class="flex flex-col items-start lg:items-end shrink-0">
         <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Status</span>
         <div class="flex items-center gap-2">
           <span class="relative flex h-2 w-2">
@@ -27,8 +27,10 @@ defmodule NervesDesktopWeb.UI do
           <span class="text-sm font-semibold text-gray-700">Scanning</span>
         </div>
       </div>
-      <div class="h-8 w-px bg-gray-100"></div>
-      <div class="flex flex-col items-end">
+
+      <div class="h-8 w-px bg-gray-100 shrink-0"></div>
+
+      <div class="flex flex-col items-start lg:items-end shrink-0">
         <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">
           Last Scan
         </span>
@@ -43,13 +45,16 @@ defmodule NervesDesktopWeb.UI do
       </div>
 
       <%= if @on_refresh do %>
-        <button
-          phx-click={@on_refresh}
-          class="btn btn-primary btn-md shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-          phx-throttle="2000"
-        >
-          <.icon name="hero-arrow-path" class="w-5 h-5" /> Refresh
-        </button>
+        <div class="shrink-0">
+          <button
+            phx-click={@on_refresh}
+            class="btn btn-primary btn-sm lg:btn-md shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] h-10 lg:h-12"
+            phx-throttle="2000"
+          >
+            <.icon name="hero-arrow-path" class="w-4 h-4 lg:w-5 lg:h-5" />
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       <% end %>
     </div>
     """
@@ -100,54 +105,56 @@ defmodule NervesDesktopWeb.UI do
 
   def ssh_connection_form(assigns) do
     ~H"""
-    <.form
-      :let={f}
-      for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
-      phx-change={@on_change}
-      phx-submit={@on_submit}
-      class="flex flex-wrap items-end gap-3"
-    >
-      <div class="w-fit min-w-[140px]">
-        <.input
-          field={f[:ip]}
-          type="select"
-          label="Target Device"
-          disabled={@status != :disconnected}
-          options={[
-            {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.ip})
-          ]}
-        />
-      </div>
+    <div class="overflow-x-auto">
+      <.form
+        :let={f}
+        for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
+        phx-change={@on_change}
+        phx-submit={@on_submit}
+        class="flex flex-nowrap items-end gap-3 min-w-max"
+      >
+        <div class="w-fit min-w-[140px] shrink-0">
+          <.input
+            field={f[:ip]}
+            type="select"
+            label="Target Device"
+            disabled={@status != :disconnected}
+            options={[
+              {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.ip})
+            ]}
+          />
+        </div>
 
-      <div class="w-28">
-        <.input
-          field={f[:password]}
-          type="password"
-          label="SSH Password"
-          disabled={@status != :disconnected}
-          placeholder="optional"
-        />
-      </div>
+        <div class="w-28 shrink-0">
+          <.input
+            field={f[:password]}
+            type="password"
+            label="SSH Password"
+            disabled={@status != :disconnected}
+            placeholder="optional"
+          />
+        </div>
 
-      <div class="flex items-center mb-3">
-        <%= if @status == :disconnected do %>
-          <button
-            type="submit"
-            class="btn btn-primary btn-sm rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-6 h-9"
-          >
-            <.icon name="hero-bolt" class="w-4 h-4" /> Connect
-          </button>
-        <% else %>
-          <button
-            type="button"
-            phx-click={@on_disconnect}
-            class="btn btn-error btn-outline btn-sm rounded-xl flex items-center gap-2 px-6 h-9"
-          >
-            <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
-          </button>
-        <% end %>
-      </div>
-    </.form>
+        <div class="flex items-center mb-3 shrink-0">
+          <%= if @status == :disconnected do %>
+            <button
+              type="submit"
+              class="btn btn-primary btn-sm rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-6 h-9"
+            >
+              <.icon name="hero-bolt" class="w-4 h-4" /> Connect
+            </button>
+          <% else %>
+            <button
+              type="button"
+              phx-click={@on_disconnect}
+              class="btn btn-error btn-outline btn-sm rounded-xl flex items-center gap-2 px-6 h-9"
+            >
+              <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
+            </button>
+          <% end %>
+        </div>
+      </.form>
+    </div>
     """
   end
 
