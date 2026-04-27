@@ -11,19 +11,11 @@ defmodule NervesDesktopWeb.SettingsLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:settings}>
       <div class="p-4 md:p-8 w-full">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-              <div class="p-2 bg-primary/10 rounded-xl">
-                <.icon name="hero-cog-6-tooth" class="w-10 h-10 text-primary" />
-              </div>
-              Settings
-            </h1>
-            <p class="text-lg text-gray-500 mt-2 font-medium">
-              Configure Nerves Desktop settings
-            </p>
-          </div>
-        </header>
+        <UI.page_header
+          icon="hero-cog-6-tooth"
+          title="Settings"
+          subtitle="Configure Nerves Desktop settings"
+        />
 
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <div class="flex flex-col items-center justify-center py-20 text-center">

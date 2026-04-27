@@ -13,10 +13,10 @@ defmodule NervesDesktopWeb.UI do
   def scanning_status(assigns) do
     ~H"""
     <div class={[
-      "flex items-center gap-6 bg-white p-2 pr-4 rounded-2xl shadow-sm border border-gray-100",
+      "flex items-center gap-4 bg-white px-3 py-2 rounded-2xl shadow-sm border border-gray-100",
       @class
     ]}>
-      <div class="flex flex-col items-end px-2">
+      <div class="flex flex-col items-end">
         <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Status</span>
         <div class="flex items-center gap-2">
           <span class="relative flex h-2 w-2">
@@ -24,7 +24,7 @@ defmodule NervesDesktopWeb.UI do
             </span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
-          <span class="text-sm font-semibold text-gray-700">Auto-scanning</span>
+          <span class="text-sm font-semibold text-gray-700">Scanning</span>
         </div>
       </div>
       <div class="h-8 w-px bg-gray-100"></div>
@@ -52,6 +52,37 @@ defmodule NervesDesktopWeb.UI do
         </button>
       <% end %>
     </div>
+    """
+  end
+
+  @doc """
+  Renders a page header with an icon, title, subtitle, and an actions slot.
+  """
+  attr :icon, :string, required: true
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  slot :actions
+
+  def page_header(assigns) do
+    ~H"""
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-10">
+      <div>
+        <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+          <div class="p-2 bg-primary/10 rounded-xl size-12 flex items-center">
+            <.icon name={@icon} class="w-full h-full text-primary" />
+          </div>
+          {@title}
+        </h1>
+        <%= if @subtitle do %>
+          <p class="text-lg text-gray-500 mt-2 font-medium">
+            {@subtitle}
+          </p>
+        <% end %>
+      </div>
+      <div :if={@actions != []} class="w-full lg:w-auto">
+        {render_slot(@actions)}
+      </div>
+    </header>
     """
   end
 

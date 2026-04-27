@@ -113,68 +113,62 @@ defmodule NervesDesktopWeb.ConsoleLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:console}>
       <div class="p-4 md:p-8 w-full h-full flex flex-col">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-          <div>
-            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-              <div class="p-2 bg-primary/10 rounded-xl text-primary">
-                <.icon name="hero-command-line" class="w-10 h-10" />
-              </div>
-              Device Console
-            </h1>
-            <p class="text-lg text-gray-500 mt-2 font-medium">
-              Interactive terminal via system SSH
-            </p>
-          </div>
+        <UI.page_header
+          icon="hero-command-line"
+          title="Device Console"
+          subtitle="Interactive terminal via system SSH"
+        >
+          <:actions>
+            <div class="flex items-center gap-4 bg-white px-8 py-3 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto">
+              <.form
+                :let={f}
+                for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
+                phx-change="validate_connection"
+                phx-submit="connect"
+                class="flex flex-wrap items-center gap-4"
+              >
+                <div class="w-fit min-w-[160px]">
+                  <.input
+                    field={f[:ip]}
+                    type="select"
+                    label="Target Device"
+                    disabled={@status != :disconnected}
+                    options={[{"Select a device...", ""} | Enum.map(@devices, &({&1.name || &1.hostname, &1.ip}))]}
+                  />
+                </div>
 
-          <div class="flex items-center gap-4 bg-white px-8 py-3 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto">
-            <.form 
-              :let={f}
-              for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)} 
-              phx-change="validate_connection" 
-              phx-submit="connect" 
-              class="flex flex-wrap items-center gap-4"
-            >
-              <div class="w-fit min-w-[160px]">
-                <.input
-                  field={f[:ip]}
-                  type="select"
-                  label="Target Device"
-                  disabled={@status != :disconnected}
-                  options={[{"Select a device...", ""} | Enum.map(@devices, &({&1.name || &1.hostname, &1.ip}))]}
-                />
-              </div>
+                <div class="w-32">
+                  <.input
+                    field={f[:password]}
+                    type="password"
+                    label="SSH Password"
+                    disabled={@status != :disconnected}
+                    placeholder="optional"
+                  />
+                </div>
 
-              <div class="w-32">
-                <.input
-                  field={f[:password]}
-                  type="password"
-                  label="SSH Password"
-                  disabled={@status != :disconnected}
-                  placeholder="optional"
-                />
-              </div>
-
-              <div class="flex items-center mb-2 mt-6">
-                <%= if @status == :disconnected do %>
-                  <button
-                    type="submit"
-                    class="btn btn-primary btn-md rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-8"
-                  >
-                    <.icon name="hero-bolt" class="w-4 h-4" /> Connect
-                  </button>
-                <% else %>
-                  <button
-                    type="button"
-                    phx-click="disconnect"
-                    class="btn btn-error btn-outline btn-md rounded-xl flex items-center gap-2 px-8"
-                  >
-                    <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
-                  </button>
-                <% end %>
-              </div>
-            </.form>
-          </div>
-        </header>
+                <div class="flex items-center mb-2 mt-6">
+                  <%= if @status == :disconnected do %>
+                    <button
+                      type="submit"
+                      class="btn btn-primary btn-md rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-8"
+                    >
+                      <.icon name="hero-bolt" class="w-4 h-4" /> Connect
+                    </button>
+                  <% else %>
+                    <button
+                      type="button"
+                      phx-click="disconnect"
+                      class="btn btn-error btn-outline btn-md rounded-xl flex items-center gap-2 px-8"
+                    >
+                      <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
+                    </button>
+                  <% end %>
+                </div>
+              </.form>
+            </div>
+          </:actions>
+        </UI.page_header>
 
         <div class="flex-1 flex flex-col min-h-0">
           <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 h-[600px]">

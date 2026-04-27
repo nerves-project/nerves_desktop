@@ -116,26 +116,20 @@ defmodule NervesDesktopWeb.FelLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:fel}>
       <div class="p-4 md:p-8 w-full flex flex-col">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-              <div class="p-2 bg-primary/10 rounded-xl text-primary">
-                <.icon name="hero-bolt" class="w-10 h-10" />
-              </div>
-              Allwinner FEL
-            </h1>
-            <p class="text-lg text-gray-500 mt-2 font-medium">
-              Interact with Allwinner devices via USB FEL mode
-            </p>
-          </div>
-          
-          <UI.scanning_status
-            last_scan_at={@last_scan_at}
-            on_refresh="scan_now"
-            id="last-scan-time-fel"
-            class="w-full md:w-auto"
-          />
-        </header>
+        <UI.page_header
+          icon="hero-bolt"
+          title="Allwinner FEL"
+          subtitle="Interact with Allwinner devices via USB FEL mode"
+        >
+          <:actions>
+            <UI.scanning_status
+              last_scan_at={@last_scan_at}
+              on_refresh="scan_now"
+              id="last-scan-time-fel"
+              class="w-full md:w-auto"
+            />
+          </:actions>
+        </UI.page_header>
 
         <%= if Enum.empty?(@devices) do %>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">

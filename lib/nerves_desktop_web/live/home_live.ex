@@ -30,20 +30,15 @@ defmodule NervesDesktopWeb.HomeLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:devices}>
       <div class="p-4 md:p-8 w-full">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-              <div class="p-2 bg-primary/10 rounded-xl">
-                <.icon name="hero-cpu-chip" class="w-10 h-10 text-primary" />
-              </div>
-              Nerves Devices
-            </h1>
-            <p class="text-lg text-gray-500 mt-2 font-medium">
-              Monitor and discover Nerves nodes on your network
-            </p>
-          </div>
-          <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
-        </header>
+        <UI.page_header
+          icon="hero-cpu-chip"
+          title="Nerves Devices"
+          subtitle="Monitor and discover Nerves nodes on your network"
+        >
+          <:actions>
+            <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
+          </:actions>
+        </UI.page_header>
 
         <%= if Enum.empty?(@devices) do %>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">

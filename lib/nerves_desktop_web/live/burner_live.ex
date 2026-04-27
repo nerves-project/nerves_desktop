@@ -111,17 +111,11 @@ defmodule NervesDesktopWeb.BurnerLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:burner}>
       <div class="p-4 md:p-8 w-full">
-        <header class="mb-10">
-          <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-            <div class="p-2 bg-primary/10 rounded-xl text-primary">
-              <.icon name="hero-fire" class="w-10 h-10" />
-            </div>
-            Firmware Burner
-          </h1>
-          <p class="text-lg text-gray-500 mt-2 font-medium">
-            Download and flash Nerves firmware to SD cards
-          </p>
-        </header>
+        <UI.page_header
+          icon="hero-fire"
+          title="Firmware Burner"
+          subtitle="Download and flash Nerves firmware to SD cards"
+        />
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Selection Section -->
