@@ -40,7 +40,6 @@ defmodule NervesDesktop.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:sunxi, "~> 0.1"},
       {:tidewave, "~> 0.5", only: [:dev]},
       {:phoenix, "~> 1.8.5"},
       {:phoenix_html, "~> 4.1"},
@@ -66,8 +65,7 @@ defmodule NervesDesktop.MixProject do
       {:bandit, "~> 1.5"},
       {:elixirkit, "~> 0.1.0"},
       {:nerves_discovery, "~> 0.1.2"},
-      {:nerves_burner, github: "nerves-project/nerves_burner", ref: "v0.2.4"},
-      {:x509, "~> 0.8"}
+      {:nerves_burner, github: "nerves-project/nerves_burner", ref: "v0.2.4"}
     ]
   end
 

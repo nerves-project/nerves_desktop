@@ -15,7 +15,6 @@ defmodule NervesDesktop.Application do
       {Phoenix.PubSub, name: NervesDesktop.PubSub},
       {Task.Supervisor, name: NervesDesktop.TaskSupervisor},
       {NervesDesktop.DeviceScanner, []},
-      {NervesDesktop.FelScanner, []},
       {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
       # Start a worker by calling: NervesDesktop.Worker.start_link(arg)
       # {NervesDesktop.Worker, arg},

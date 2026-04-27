@@ -20,8 +20,6 @@ defmodule NervesDesktopWeb.Router do
     live "/", HomeLive
     live "/console", ConsoleLive
     live "/burner", BurnerLive
-    live "/nerves_key", NervesKeyLive
-    live "/fel", FelLive
     live "/settings", SettingsLive
   end
 

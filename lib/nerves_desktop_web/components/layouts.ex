@@ -39,12 +39,6 @@ defmodule NervesDesktopWeb.Layouts do
           <UI.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
             Firmware Burner
           </UI.nav_link>
-          <UI.nav_link href={~p"/nerves_key"} icon="hero-key" active={@active_tab == :nerves_key}>
-            Nerves Key
-          </UI.nav_link>
-          <UI.nav_link href={~p"/fel"} icon="hero-bolt" active={@active_tab == :fel}>
-            Allwinner FEL
-          </UI.nav_link>
         </nav>
 
         <div class="p-4 border-t border-gray-50 overflow-hidden">
@@ -73,14 +67,14 @@ defmodule NervesDesktopWeb.Layouts do
       </aside>
       
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-      <div class="flex-1 overflow-y-auto relative p-4 md:p-8">
-        <.flash_group flash={@flash} />
-        <div class="flex flex-col space-y-8 w-full">
-          {render_slot(@inner_block)}
+      <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <div class="flex-1 overflow-y-auto relative p-4 md:p-8">
+          <.flash_group flash={@flash} />
+          <div class="flex flex-col space-y-8 w-full">
+            {render_slot(@inner_block)}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
     </div>
     """
   end
