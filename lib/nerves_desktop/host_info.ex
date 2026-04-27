@@ -33,7 +33,7 @@ defmodule NervesDesktop.HostInfo do
   end
 
   @impl true
-  def handle_info({:elixirkit_pubsub, @topic, payload}, _state) do
+  def handle_info(payload, _state) do
     case Jason.decode(payload) do
       {:ok, info} ->
         Logger.info("[HostInfo] Received system info: #{inspect(info)}")

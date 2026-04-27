@@ -188,32 +188,22 @@ defmodule NervesDesktopWeb.BurnerLive do
     parent = self()
 
     Task.start_link(fn ->
-      repo = config.repo
-      api_url = "https://api.github.com/repos/#{repo}/releases/latest"
-      
-      with {:ok, %{status: 200, body: %{"assets_url" => assets_url}}} <- Req.get(api_url),
-           {:ok, %{status: 200, body: assets}} <- Req.get(assets_url) do
-        
-        asset_name = config.fw_asset_pattern.(arch)
-        
-        case Enum.find(assets, fn a -> a["name"] == asset_name end) do
-           %{"browser_download_url" => url, "size" => total_size} ->
-             cache_path = Path.join(System.tmp_dir!(), asset_name)
-             File.open!(cache_path, [:write, :binary], fn file ->
-                Req.get!(url, into: fn {:data, data}, {req, res} ->
-                  IO.binwrite(file, data)
-                  current_size = File.stat!(cache_path).size
-                  percent = round(current_size / total_size * 100)
-                  send(parent, {:download_progress, percent})
-                  {:cont, {req, res}}
-                end)
-             end)
-             send(parent, {:download_finished, cache_path})
-           _ ->
-             send(parent, {:fwup, {:error, 0, "Asset not found"}})
-        end
-      else
-        _ -> send(parent, {:fwup, {:error, 0, "Failed to fetch release info"}})
+      result =
+        NervesBurner.Downloader.download(config, arch,
+          on_progress: fn total, current ->
+            if total > 0 do
+              percent = round(current / total * 100)
+              send(parent, {:download_progress, percent})
+            end
+          end
+        )
+
+      case result do
+        {:ok, fw_path} ->
+          send(parent, {:download_finished, fw_path})
+
+        {:error, reason} ->
+          send(parent, {:fwup, {:error, 0, reason}})
       end
     end)
   end
