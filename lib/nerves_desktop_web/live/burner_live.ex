@@ -110,14 +110,13 @@ defmodule NervesDesktopWeb.BurnerLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:burner}>
-      <div class="p-4 md:p-8 w-full">
-        <UI.page_header
-          icon="hero-fire"
-          title="Firmware Burner"
-          subtitle="Download and flash Nerves firmware to SD cards"
-        />
+      <UI.page_header
+        icon="hero-fire"
+        title="Firmware Burner"
+        subtitle="Download and flash Nerves firmware to SD cards"
+      />
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Selection Section -->
           <div class="space-y-6">
             <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100">
@@ -288,7 +287,6 @@ defmodule NervesDesktopWeb.BurnerLive do
             </div>
           </div>
         </div>
-      </div>
     </Layouts.app>
     """
   end

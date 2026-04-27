@@ -115,23 +115,22 @@ defmodule NervesDesktopWeb.FelLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:fel}>
-      <div class="p-4 md:p-8 w-full flex flex-col">
-        <UI.page_header
-          icon="hero-bolt"
-          title="Allwinner FEL"
-          subtitle="Interact with Allwinner devices via USB FEL mode"
-        >
-          <:actions>
-            <UI.scanning_status
-              last_scan_at={@last_scan_at}
-              on_refresh="scan_now"
-              id="last-scan-time-fel"
-              class="w-full md:w-auto"
-            />
-          </:actions>
-        </UI.page_header>
+      <UI.page_header
+        icon="hero-bolt"
+        title="Allwinner FEL"
+        subtitle="Interact with Allwinner devices via USB FEL mode"
+      >
+        <:actions>
+          <UI.scanning_status
+            last_scan_at={@last_scan_at}
+            on_refresh="scan_now"
+            id="last-scan-time-fel"
+            class="w-full md:w-auto"
+          />
+        </:actions>
+      </UI.page_header>
 
-        <%= if Enum.empty?(@devices) do %>
+      <%= if Enum.empty?(@devices) do %>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
             <div class="bg-white rounded-[2.5rem] p-12 flex flex-col items-center justify-center text-center shadow-xl shadow-gray-200/50 border border-gray-100">
               <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 relative">
@@ -289,7 +288,6 @@ defmodule NervesDesktopWeb.FelLive do
             <% end %>
           </div>
         <% end %>
-      </div>
     </Layouts.app>
     """
   end

@@ -29,18 +29,17 @@ defmodule NervesDesktopWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:devices}>
-      <div class="p-4 md:p-8 w-full">
-        <UI.page_header
-          icon="hero-cpu-chip"
-          title="Nerves Devices"
-          subtitle="Monitor and discover Nerves nodes on your network"
-        >
-          <:actions>
-            <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
-          </:actions>
-        </UI.page_header>
+      <UI.page_header
+        icon="hero-cpu-chip"
+        title="Nerves Devices"
+        subtitle="Monitor and discover Nerves nodes on your network"
+      >
+        <:actions>
+          <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
+        </:actions>
+      </UI.page_header>
 
-        <%= if Enum.empty?(@devices) do %>
+      <%= if Enum.empty?(@devices) do %>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
             <div class="bg-white rounded-[2rem] p-12 flex flex-col items-center justify-center text-center shadow-xl shadow-gray-200/50 border border-gray-100">
               <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 relative">
@@ -212,7 +211,6 @@ defmodule NervesDesktopWeb.HomeLive do
             </div>
           </div>
         <% end %>
-      </div>
     </Layouts.app>
     """
   end

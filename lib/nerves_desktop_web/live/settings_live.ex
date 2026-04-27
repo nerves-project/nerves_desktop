@@ -10,14 +10,13 @@ defmodule NervesDesktopWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:settings}>
-      <div class="p-4 md:p-8 w-full">
-        <UI.page_header
-          icon="hero-cog-6-tooth"
-          title="Settings"
-          subtitle="Configure Nerves Desktop settings"
-        />
+      <UI.page_header
+        icon="hero-cog-6-tooth"
+        title="Settings"
+        subtitle="Configure Nerves Desktop settings"
+      />
 
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+      <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <div class="flex flex-col items-center justify-center py-20 text-center">
             <div class="p-6 bg-gray-50 rounded-full mb-6">
               <.icon name="hero-wrench-screwdriver" class="w-12 h-12 text-gray-400" />
@@ -28,7 +27,6 @@ defmodule NervesDesktopWeb.SettingsLive do
             </p>
           </div>
         </div>
-      </div>
     </Layouts.app>
     """
   end
