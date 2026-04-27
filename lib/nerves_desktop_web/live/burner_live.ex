@@ -111,8 +111,8 @@ defmodule NervesDesktopWeb.BurnerLive do
     device_path = socket.assigns.selected_device
 
     env = [
-      {"NERVES_NETWORK_SSID", socket.assigns.wifi_ssid},
-      {"NERVES_NETWORK_PSK", socket.assigns.wifi_psk}
+      {"NERVES_WIFI_SSID", socket.assigns.wifi_ssid},
+      {"NERVES_WIFI_PASSPHRASE", socket.assigns.wifi_psk}
     ]
 
     # Use Fwup.stream to run the burn asynchronously
@@ -180,7 +180,11 @@ defmodule NervesDesktopWeb.BurnerLive do
 
         {:noreply,
          socket
-         |> assign(status: :downloading, message: "Downloading firmware for #{arch}...", progress: 0)}
+         |> assign(
+           status: :downloading,
+           message: "Downloading firmware for #{arch}...",
+           progress: 0
+         )}
     end
   end
 
@@ -238,23 +242,28 @@ defmodule NervesDesktopWeb.BurnerLive do
             <div>
               <h3 class="text-xl font-bold text-red-900 mb-2">Fwup Not Found</h3>
               <p class="text-red-700 leading-relaxed mb-6">
-                The <code>fwup</code> tool is required to flash Nerves firmware but was not found on your system path.
+                The <code>fwup</code>
+                tool is required to flash Nerves firmware but was not found on your system path.
               </p>
-              
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div class="bg-white/50 p-4 rounded-xl border border-red-200">
                   <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">macOS</p>
-                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">brew install fwup</code>
+                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
+                    brew install fwup
+                  </code>
                 </div>
                 <div class="bg-white/50 p-4 rounded-xl border border-red-200">
                   <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">Linux</p>
-                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">sudo apt install fwup</code>
+                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
+                    sudo apt install fwup
+                  </code>
                 </div>
               </div>
 
-              <a 
-                href="https://github.com/fwup-home/fwup" 
-                phx-hook="TauriOpen" 
+              <a
+                href="https://github.com/fwup-home/fwup"
+                phx-hook="TauriOpen"
                 id="fwup-repo-link"
                 class="text-red-900 font-bold underline hover:no-underline"
               >
@@ -335,9 +344,9 @@ defmodule NervesDesktopWeb.BurnerLive do
             <% else %>
               <UI.placeholder>
                 <p>
-                  <%= if match?({:local, _}, @selected_image),
+                  {if match?({:local, _}, @selected_image),
                     do: "Target selection not required for local firmware.",
-                    else: "Please select a firmware image in Step 1 first." %>
+                    else: "Please select a firmware image in Step 1 first."}
                 </p>
               </UI.placeholder>
             <% end %>
@@ -378,12 +387,12 @@ defmodule NervesDesktopWeb.BurnerLive do
             <% end %>
           </UI.step_box>
         </div>
-
-        <!-- Action & Status Section -->
+        
+    <!-- Action & Status Section -->
         <div class="space-y-6">
           <div class="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col h-full">
             <h3 class="text-xl font-bold text-gray-900 mb-8">Ready to Burn</h3>
-            
+
             <div class="space-y-6 flex-1">
               <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all text-ellipsis overflow-hidden">
                 <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
@@ -393,11 +402,19 @@ defmodule NervesDesktopWeb.BurnerLive do
                   <div class="text-[10px] uppercase font-bold text-gray-400">Firmware</div>
                   <div class="font-bold text-gray-900 truncate">
                     <%= case @selected_image do %>
-                      <% {:local, path} -> %> {Path.basename(path)}
-                      <% {name, _} -> %> {name}
-                      <% _ -> %> None Selected
+                      <% {:local, path} -> %>
+                        {Path.basename(path)}
+                      <% {name, _} -> %>
+                        {name}
+                      <% _ -> %>
+                        None Selected
                     <% end %>
-                    <span :if={@selected_target_arch} class="ml-2 text-primary font-mono text-xs bg-primary/10 px-2 py-0.5 rounded-lg shrink-0">{@selected_target_arch}</span>
+                    <span
+                      :if={@selected_target_arch}
+                      class="ml-2 text-primary font-mono text-xs bg-primary/10 px-2 py-0.5 rounded-lg shrink-0"
+                    >
+                      {@selected_target_arch}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -408,11 +425,13 @@ defmodule NervesDesktopWeb.BurnerLive do
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-[10px] uppercase font-bold text-gray-400">Storage Device</div>
-                  <div class="font-bold text-gray-900 truncate">{@selected_device || "None Selected"}</div>
+                  <div class="font-bold text-gray-900 truncate">
+                    {@selected_device || "None Selected"}
+                  </div>
                 </div>
               </div>
-
-              <!-- WiFi Provisioning Form -->
+              
+    <!-- WiFi Provisioning Form -->
               <div class="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
                 <h4 class="text-xs font-black uppercase text-gray-400 tracking-widest flex items-center gap-2">
                   <.icon name="hero-wifi" class="w-4 h-4" /> WiFi Provisioning (Optional)
@@ -448,7 +467,8 @@ defmodule NervesDesktopWeb.BurnerLive do
                     <div
                       class="bg-primary h-full transition-all duration-500 rounded-full shadow-lg shadow-primary/30"
                       style={"width: #{@progress}%"}
-                    ></div>
+                    >
+                    </div>
                   </div>
                 </div>
               <% end %>
@@ -456,7 +476,9 @@ defmodule NervesDesktopWeb.BurnerLive do
               <%= if @status == :success do %>
                 <div class="mt-4 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 flex items-center gap-3">
                   <.icon name="hero-check-circle" class="w-6 h-6" />
-                  <div class="text-sm font-bold">Successfully flashed! You can now eject the storage device.</div>
+                  <div class="text-sm font-bold">
+                    Successfully flashed! You can now eject the storage device.
+                  </div>
                 </div>
               <% end %>
 
@@ -471,7 +493,10 @@ defmodule NervesDesktopWeb.BurnerLive do
             <div class="mt-12">
               <button
                 phx-click="burn"
-                disabled={is_nil(@selected_image) or is_nil(@selected_device) or @status in [:downloading, :burning]}
+                disabled={
+                  is_nil(@selected_image) or is_nil(@selected_device) or
+                    @status in [:downloading, :burning]
+                }
                 class="btn btn-primary w-full h-16 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 <%= if @status in [:downloading, :burning] do %>
