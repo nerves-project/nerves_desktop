@@ -26,21 +26,21 @@ defmodule NervesDesktopWeb.Layouts do
         </div>
 
         <nav class="flex-1 px-4 space-y-2 mt-4">
-          <.nav_link href={~p"/"} icon="hero-list-bullet" active={@active_tab == :devices}>
+          <UI.nav_link href={~p"/"} icon="hero-list-bullet" active={@active_tab == :devices}>
             Devices
-          </.nav_link>
-          <.nav_link href={~p"/console"} icon="hero-command-line" active={@active_tab == :console}>
+          </UI.nav_link>
+          <UI.nav_link href={~p"/console"} icon="hero-command-line" active={@active_tab == :console}>
             Device Console
-          </.nav_link>
-          <.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
+          </UI.nav_link>
+          <UI.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
             Firmware Burner
-          </.nav_link>
-          <.nav_link href={~p"/nerves_key"} icon="hero-key" active={@active_tab == :nerves_key}>
+          </UI.nav_link>
+          <UI.nav_link href={~p"/nerves_key"} icon="hero-key" active={@active_tab == :nerves_key}>
             Nerves Key
-          </.nav_link>
-          <.nav_link href={~p"/fel"} icon="hero-bolt" active={@active_tab == :fel}>
+          </UI.nav_link>
+          <UI.nav_link href={~p"/fel"} icon="hero-bolt" active={@active_tab == :fel}>
             Allwinner FEL
-          </.nav_link>
+          </UI.nav_link>
         </nav>
 
         <div class="p-6 border-t border-gray-50 overflow-hidden">
@@ -74,29 +74,6 @@ defmodule NervesDesktopWeb.Layouts do
         </div>
       </main>
     </div>
-    """
-  end
-
-  defp nav_link(assigns) do
-    ~H"""
-    <.link
-      href={@href}
-      class={[
-        "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all group/link",
-        @active && "bg-primary text-white shadow-lg shadow-primary/25",
-        !@active && "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-      ]}
-    >
-      <.icon
-        name={@icon}
-        class={[
-          "w-5 h-5 transition-colors shrink-0",
-          @active && "text-white",
-          !@active && "text-gray-400 group-hover/link:text-primary"
-        ]}
-      />
-      {render_slot(@inner_block)}
-    </.link>
     """
   end
 

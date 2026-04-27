@@ -54,4 +54,35 @@ defmodule NervesDesktopWeb.UI do
     </div>
     """
   end
+
+  @doc """
+  Renders a navigation link for the sidebar.
+  """
+  attr :href, :string, required: true
+  attr :icon, :string, required: true
+  attr :active, :boolean, default: false
+  slot :inner_block, required: true
+
+  def nav_link(assigns) do
+    ~H"""
+    <.link
+      href={@href}
+      class={[
+        "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all group/link",
+        @active && "bg-primary text-white shadow-lg shadow-primary/25",
+        !@active && "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+      ]}
+    >
+      <.icon
+        name={@icon}
+        class={[
+          "w-5 h-5 transition-colors shrink-0",
+          @active && "text-white",
+          !@active && "text-gray-400 group-hover/link:text-primary"
+        ]}
+      />
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
 end
