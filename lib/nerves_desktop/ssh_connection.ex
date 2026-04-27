@@ -22,7 +22,8 @@ defmodule NervesDesktop.SSHConnection do
 
   @impl true
   def init(_opts) do
-    {:ok, %{status: :disconnected, device_ip: nil, port: nil, password: nil, password_sent: false}}
+    {:ok,
+     %{status: :disconnected, device_ip: nil, port: nil, password: nil, password_sent: false}}
   end
 
   @impl true
@@ -30,20 +31,40 @@ defmodule NervesDesktop.SSHConnection do
     if state.port, do: Port.close(state.port)
 
     connection_str = "#{user}@#{device_ip}"
-    ssh_cmd = "ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 #{connection_str}"
+
+    ssh_cmd =
+      "ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 #{connection_str}"
+
     cmd = "script -q /dev/null #{ssh_cmd}"
-    
+
     Logger.info("Opening interactive SSH connection: #{cmd}")
-    
+
     port = Port.open({:spawn, cmd}, [:binary, :exit_status, :stderr_to_stdout])
 
-    {:reply, :ok, %{state | status: :connected, device_ip: device_ip, port: port, password: password, password_sent: false}}
+    {:reply, :ok,
+     %{
+       state
+       | status: :connected,
+         device_ip: device_ip,
+         port: port,
+         password: password,
+         password_sent: false
+     }}
   end
 
   @impl true
   def handle_call(:disconnect, _from, state) do
     if state.port, do: Port.close(state.port)
-    {:reply, :ok, %{state | status: :disconnected, device_ip: nil, port: nil, password: nil, password_sent: false}}
+
+    {:reply, :ok,
+     %{
+       state
+       | status: :disconnected,
+         device_ip: nil,
+         port: nil,
+         password: nil,
+         password_sent: false
+     }}
   end
 
   @impl true
@@ -60,7 +81,7 @@ defmodule NervesDesktop.SSHConnection do
   @impl true
   def handle_info({port, {:data, data}}, %{port: port} = state) do
     # Check for password prompt if we have a password to send and haven't sent it yet
-    state = 
+    state =
       if state.password && !state.password_sent && String.contains?(data, "Password:") do
         Logger.info("Detected password prompt, sending password...")
         # Small delay ensures the remote side is ready to read the password
@@ -85,7 +106,16 @@ defmodule NervesDesktop.SSHConnection do
     Logger.info("SSH Port closed with status: #{status}")
     broadcast_output(state.device_ip, "\r\n\x1B[1;31m[SSH Session Closed]\x1B[0m\r\n")
     broadcast_closed(state.device_ip)
-    {:noreply, %{state | status: :disconnected, device_ip: nil, port: nil, password: nil, password_sent: false}}
+
+    {:noreply,
+     %{
+       state
+       | status: :disconnected,
+         device_ip: nil,
+         port: nil,
+         password: nil,
+         password_sent: false
+     }}
   end
 
   defp broadcast_output(device_ip, data) do
