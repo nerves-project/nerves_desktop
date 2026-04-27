@@ -11,7 +11,7 @@ defmodule NervesDesktopWeb.Layouts do
   Renders your app layout.
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
-  attr :active_tab, :atom, default: :devices, values: [:devices, :console, :burner, :nerves_key, :fel]
+  attr :active_tab, :atom, default: :devices, values: [:devices, :console, :burner, :nerves_key, :fel, :settings]
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -44,7 +44,7 @@ defmodule NervesDesktopWeb.Layouts do
         </nav>
 
         <div class="p-6 border-t border-gray-50 overflow-hidden">
-          <div class="flex items-center gap-3 px-2 py-3 bg-gray-50 rounded-2xl border border-gray-100 whitespace-nowrap">
+          <div class="flex items-center gap-3 px-2 py-3 bg-gray-50 rounded-2xl border border-gray-100 whitespace-nowrap relative group/settings">
             <div class="w-8 h-8 shrink-0">
               <img src={~p"/images/nerves_icon.svg"} class="w-full h-full" alt="ND" />
             </div>
@@ -52,6 +52,16 @@ defmodule NervesDesktopWeb.Layouts do
               <p class="text-xs font-bold text-gray-900 truncate">Nerves Desktop</p>
               <p class="text-[10px] text-gray-400 truncate">v{Application.spec(:nerves_desktop, :vsn)}</p>
             </div>
+            <.link
+              href={~p"/settings"}
+              class={[
+                "p-2 rounded-xl transition-all hover:bg-white hover:text-primary hover:shadow-sm",
+                @active_tab == :settings && "text-primary",
+                @active_tab != :settings && "text-gray-400"
+              ]}
+            >
+              <.icon name="hero-cog-6-tooth" class="w-5 h-5" />
+            </.link>
           </div>
         </div>
       </aside>

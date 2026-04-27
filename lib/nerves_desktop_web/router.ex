@@ -22,6 +22,7 @@ defmodule NervesDesktopWeb.Router do
     live "/burner", BurnerLive
     live "/nerves_key", NervesKeyLive
     live "/fel", FelLive
+    live "/settings", SettingsLive
   end
 
   # Other scopes may use custom stacks.
