@@ -13,10 +13,14 @@ defmodule NervesDesktop.FelScanner do
     GenServer.call(__MODULE__, :get_devices)
   end
 
+  def scan_now do
+    GenServer.cast(__MODULE__, :scan)
+  end
+
   @impl true
   def init(_opts) do
-    schedule_scan(0)
-    {:ok, %{devices: []}}
+    state = %{devices: [], timer: nil}
+    {:ok, schedule_scan(state, 0)}
   end
 
   @impl true
@@ -25,8 +29,20 @@ defmodule NervesDesktop.FelScanner do
   end
 
   @impl true
+  def handle_cast(:scan, state) do
+    {:noreply, perform_scan(state)}
+  end
+
+  @impl true
   def handle_info(:scan, state) do
-    new_devices = 
+    {:noreply, perform_scan(state)}
+  end
+
+  defp perform_scan(state) do
+    # Cancel existing timer if any
+    if state.timer, do: Process.cancel_timer(state.timer)
+
+    new_devices =
       case Sunxi.FEL.list_devices() do
         devices when is_list(devices) -> devices
         _ -> []
@@ -35,11 +51,13 @@ defmodule NervesDesktop.FelScanner do
     # Always broadcast so the UI can update the "Last Scan" timestamp
     Phoenix.PubSub.broadcast(NervesDesktop.PubSub, @topic, {:fel_devices_updated, new_devices})
 
-    schedule_scan()
-    {:noreply, %{state | devices: new_devices}}
+    state
+    |> Map.put(:devices, new_devices)
+    |> schedule_scan()
   end
 
-  defp schedule_scan(ms \\ @scan_interval) do
-    Process.send_after(self(), :scan, ms)
+  defp schedule_scan(state, ms \\ @scan_interval) do
+    timer = Process.send_after(self(), :scan, ms)
+    %{state | timer: timer}
   end
 end

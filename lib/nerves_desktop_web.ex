@@ -85,6 +85,7 @@ defmodule NervesDesktopWeb do
       # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias NervesDesktopWeb.Layouts
+      alias NervesDesktopWeb.UI
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

@@ -14,7 +14,7 @@ defmodule NervesDesktop.Application do
       {DNSCluster, query: Application.get_env(:nerves_desktop, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NervesDesktop.PubSub},
       {Task.Supervisor, name: NervesDesktop.TaskSupervisor},
-      {NervesDesktop.Discovery, []},
+      {NervesDesktop.DeviceScanner, []},
       {NervesDesktop.FelScanner, []},
       {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
       # Start a worker by calling: NervesDesktop.Worker.start_link(arg)

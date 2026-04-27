@@ -14,8 +14,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     {:ok,
      socket
-     |> assign(devices: NervesDesktop.Discovery.get_devices())
-     |> assign(ssh_pid: pid)
+     |> assign(devices: NervesDesktop.DeviceScanner.get_devices())     |> assign(ssh_pid: pid)
      |> assign(status: :disconnected)
      |> assign(selected_ip: nil)
      |> assign(selected_name: nil)

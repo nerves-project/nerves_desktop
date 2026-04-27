@@ -10,7 +10,7 @@ defmodule NervesDesktopWeb.HomeLive do
     {:ok,
      socket
      |> assign(mdns_snippet: mount_snippet())
-     |> assign(devices: NervesDesktop.Discovery.get_devices())
+     |> assign(devices: NervesDesktop.DeviceScanner.get_devices())
      |> assign(last_scan_at: DateTime.utc_now())}
   end
 
@@ -21,7 +21,7 @@ defmodule NervesDesktopWeb.HomeLive do
 
   @impl true
   def handle_event("scan_now", _params, socket) do
-    NervesDesktop.Discovery.scan_now()
+    NervesDesktop.DeviceScanner.scan_now()
     {:noreply, socket}
   end
 
@@ -42,41 +42,7 @@ defmodule NervesDesktopWeb.HomeLive do
               Monitor and discover Nerves nodes on your network
             </p>
           </div>
-          <div class="flex items-center gap-6 bg-white p-2 pr-4 rounded-2xl shadow-sm border border-gray-100">
-            <div class="flex flex-col items-end px-2">
-              <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Status</span>
-              <div class="flex items-center gap-2">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75">
-                  </span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span class="text-sm font-semibold text-gray-700">Auto-scanning</span>
-              </div>
-            </div>
-            <div class="h-8 w-px bg-gray-100"></div>
-            <div class="flex flex-col items-end">
-              <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">
-                Last Scan
-              </span>
-              <time
-                id="last-scan-time"
-                datetime={DateTime.to_iso8601(@last_scan_at)}
-                phx-hook="LocalTime"
-                class="text-sm font-mono font-bold text-gray-900"
-              >
-                {Calendar.strftime(@last_scan_at, "%H:%M:%S")}
-              </time>
-            </div>
-
-            <button
-              phx-click="scan_now"
-              class="btn btn-primary btn-md shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-              phx-throttle="2000"
-            >
-              <.icon name="hero-arrow-path" class="w-5 h-5" /> Refresh
-            </button>
-          </div>
+          <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
         </header>
 
         <%= if Enum.empty?(@devices) do %>

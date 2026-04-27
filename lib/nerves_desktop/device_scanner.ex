@@ -1,4 +1,4 @@
-defmodule NervesDesktop.Discovery do
+defmodule NervesDesktop.DeviceScanner do
   use GenServer
   require Logger
 
@@ -19,8 +19,8 @@ defmodule NervesDesktop.Discovery do
 
   @impl true
   def init(_opts) do
-    schedule_scan(0)
-    {:ok, %{devices: [], scanning: false}}
+    state = %{devices: [], scanning: false, timer: nil}
+    {:ok, schedule_scan(state, 0)}
   end
 
   @impl true
@@ -30,36 +30,38 @@ defmodule NervesDesktop.Discovery do
 
   @impl true
   def handle_cast(:scan, state) do
-    if state.scanning do
-      {:noreply, state}
-    else
-      {:noreply, start_scan(state)}
-    end
+    {:noreply, perform_scan(state)}
   end
 
   @impl true
   def handle_info(:scan, state) do
-    if state.scanning do
-      schedule_scan()
-      {:noreply, state}
-    else
-      {:noreply, start_scan(state)}
-    end
+    {:noreply, perform_scan(state)}
   end
 
   @impl true
   def handle_info({ref, devices}, state) when is_reference(ref) do
     Process.demonitor(ref, [:flush])
     broadcast_devices(devices)
-    schedule_scan()
-    {:noreply, %{state | devices: devices, scanning: false}}
+
+    state = %{state | devices: devices, scanning: false}
+    {:noreply, schedule_scan(state)}
   end
 
   @impl true
   def handle_info({:DOWN, _ref, :process, _pid, reason}, state) do
     Logger.error("Discovery scan failed: #{inspect(reason)}")
-    schedule_scan()
-    {:noreply, %{state | scanning: false}}
+    {:noreply, %{state | scanning: false} |> schedule_scan()}
+  end
+
+  defp perform_scan(state) do
+    if state.timer, do: Process.cancel_timer(state.timer)
+
+    if state.scanning do
+      # If already scanning, ensure a new one is scheduled after this one finishes
+      %{state | timer: nil}
+    else
+      start_scan(state)
+    end
   end
 
   defp start_scan(state) do
@@ -67,11 +69,13 @@ defmodule NervesDesktop.Discovery do
       NervesDiscovery.discover()
     end)
 
-    %{state | scanning: true}
+    %{state | scanning: true, timer: nil}
   end
 
-  defp schedule_scan(ms \\ @scan_interval) do
-    Process.send_after(self(), :scan, ms)
+  defp schedule_scan(state, ms \\ @scan_interval) do
+    if state.timer, do: Process.cancel_timer(state.timer)
+    timer = Process.send_after(self(), :scan, ms)
+    %{state | timer: timer}
   end
 
   defp broadcast_devices(devices) do
