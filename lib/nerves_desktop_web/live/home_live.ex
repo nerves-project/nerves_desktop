@@ -141,67 +141,60 @@ defmodule NervesDesktopWeb.HomeLive do
                 <tbody class="divide-y divide-gray-50">
                   <%= for device <- @devices do %>
                     <tr class="hover:bg-primary/[0.02] transition-colors group">
-                      <td class="px-8 py-6">
-                        <div class="flex items-center gap-4">
-                          <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all">
+                      <td class="px-8 py-4">
+                        <div>
+                          <div class="font-bold text-gray-900 text-base">{device.name}</div>
+                          <div
+                            class="text-[10px] text-gray-400 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
+                            phx-click={
+                              device.hostname &&
+                                JS.dispatch("phx:copy", detail: %{text: device.hostname})
+                            }
+                          >
+                            {device.hostname || "unknown"}
                             <.icon
-                              name="hero-cpu-chip"
-                              class="w-5 h-5 text-gray-400 group-hover:text-primary"
+                              :if={device.hostname}
+                              name="hero-clipboard"
+                              class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
                             />
                           </div>
-                          <div>
-                            <div class="font-bold text-gray-900 text-lg">{device.name}</div>
-                            <div
-                              class="text-xs text-gray-400 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
-                              phx-click={
-                                device.hostname &&
-                                  JS.dispatch("phx:copy", detail: %{text: device.hostname})
-                              }
-                            >
-                              {device.hostname || "unknown"}
-                              <.icon
-                                :if={device.hostname}
-                                name="hero-clipboard-document"
-                                class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                              />
-                            </div>
-                          </div>
                         </div>
                       </td>
-                      <td class="px-8 py-6">
+                      <td class="px-8 py-4">
                         <div
-                          class="inline-flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl text-sm font-mono font-bold text-gray-600 cursor-pointer hover:bg-primary hover:text-white transition-all group/ip shadow-sm border border-gray-100"
-                          phx-click={device.ip && JS.dispatch("phx:copy", detail: %{text: device.ip})}
+                          :if={device.ip}
+                          phx-click={JS.dispatch("phx:copy", detail: %{text: device.ip})}
+                          class="inline-flex items-center gap-2 px-2 py-1 -ml-2 text-sm font-mono font-bold text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg cursor-pointer transition-all group/ip"
+                          title="Click to copy IP"
                         >
-                          {device.ip || "?.?.?.?"}
+                          {device.ip}
                           <.icon
-                            :if={device.ip}
                             name="hero-clipboard"
-                            class="w-4 h-4 opacity-50 group-hover/ip:opacity-100"
+                            class="w-4 h-4 text-gray-300 group-hover/ip:text-primary transition-colors"
                           />
                         </div>
+                        <div :if={!device.ip} class="text-sm font-mono font-bold text-gray-300">
+                          ?.?.?.?
+                        </div>
                       </td>
-                      <td class="px-8 py-6">
-                        <div class="text-gray-900 font-bold">
+                      <td class="px-8 py-4">
+                        <div class="text-gray-900 font-bold text-sm">
                           {device.product || "Unknown Product"}
                         </div>
-                        <div class="flex items-center gap-2 mt-1">
-                          <span class="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md">
-                            Version
-                          </span>
-                          <span class="text-xs text-gray-400 font-mono">
-                            {device.version || "---"}
-                          </span>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                          <span class="font-mono">{device.version || "---"}</span>
+                          <span :if={device[:platform]} class="text-gray-200">•</span>
+                          <span :if={device[:platform]}>{device.platform}</span>
                         </div>
                       </td>
-                      <td class="px-8 py-6 text-right">
+                      <td class="px-8 py-4 text-right">
                         <.link
                           navigate={
                             ~p"/console?ip=#{device.ip}&name=#{device.name || device.hostname}"
                           }
-                          class="btn btn-sm btn-ghost text-primary hover:bg-primary hover:text-white rounded-xl flex items-center gap-2 w-fit ml-auto shadow-sm transition-all"
+                          class="btn btn-primary btn-md rounded-2xl flex items-center gap-2 w-fit ml-auto shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
-                          <.icon name="hero-command-line" class="w-4 h-4" /> Console
+                          <.icon name="hero-command-line" class="w-5 h-5" /> Console
                         </.link>
                       </td>
                     </tr>
