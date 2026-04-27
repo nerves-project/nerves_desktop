@@ -66,6 +66,18 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
+  def handle_info({:ssh_closed, device_ip}, socket) do
+    if socket.assigns.selected_ip == device_ip do
+      {:noreply,
+       socket
+       |> assign(status: :disconnected)
+       |> put_flash(:error, "SSH connection closed unexpectedly.")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("validate_connection", %{"connection" => %{"ip" => ip, "password" => password}}, socket) do
     device = Enum.find(socket.assigns.devices, &(&1.ip == ip))
     {:noreply, 
