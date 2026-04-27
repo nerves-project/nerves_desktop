@@ -52,8 +52,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   # Handle file dialog result from Rust
   @impl true
-  def handle_info({:elixirkit_pubsub, "file_dialog_result", path_bytes}, socket) do
-    path = List.to_string(path_bytes)
+  def handle_info(path, socket) when is_binary(path) do
     Logger.info("[Burner] Local firmware selected: #{path}")
 
     {:noreply,
@@ -135,7 +134,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_event("select_local_firmware", _params, socket) do
-    ElixirKit.PubSub.broadcast("open_file_dialog", "")
+    ElixirKit.PubSub.broadcast("messages", "open_file_dialog")
     {:noreply, socket}
   end
 
