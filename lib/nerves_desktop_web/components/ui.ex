@@ -159,6 +159,56 @@ defmodule NervesDesktopWeb.UI do
   end
 
   @doc """
+  Renders a step box for multi-step processes like the firmware burner.
+  """
+  attr :step, :integer, required: true
+  attr :title, :string, required: true
+  attr :class, :string, default: nil
+  slot :actions
+  slot :inner_block, required: true
+
+  def step_box(assigns) do
+    ~H"""
+    <div class={[
+      "bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 transition-all",
+      @class
+    ]}>
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm">
+            {@step}
+          </span>
+          {@title}
+        </h3>
+        <div :if={@actions != []} class="flex items-center gap-2">
+          {render_slot(@actions)}
+        </div>
+      </div>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a dashed placeholder box for empty or waiting states.
+  """
+  attr :class, :string, default: nil
+  slot :inner_block, required: true
+
+  def placeholder(assigns) do
+    ~H"""
+    <div class={[
+      "p-8 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400",
+      @class
+    ]}>
+      <div class="text-sm font-medium">
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a navigation link for the sidebar.
   """
   attr :href, :string, required: true

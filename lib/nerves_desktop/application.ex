@@ -13,9 +13,10 @@ defmodule NervesDesktop.Application do
       NervesDesktopWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:nerves_desktop, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NervesDesktop.PubSub},
+      {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
       {Task.Supervisor, name: NervesDesktop.TaskSupervisor},
       {NervesDesktop.DeviceScanner, []},
-      {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
+      {NervesDesktop.HostInfo, []},
       # Start a worker by calling: NervesDesktop.Worker.start_link(arg)
       # {NervesDesktop.Worker, arg},
       # Start to serve requests, typically the last entry
