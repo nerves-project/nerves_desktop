@@ -156,7 +156,7 @@ defmodule NervesDesktopWeb.BurnerLive do
               </h3>
               
               <%= if @selected_image do %>
-                <div class="flex flex-wrap gap-2 animate-in fade-in duration-500">
+                <div class="flex flex-wrap gap-2">
                   <%= for arch <- elem(@selected_image, 1).targets do %>
                     <button
                       phx-click="select_target_arch"
@@ -246,7 +246,7 @@ defmodule NervesDesktopWeb.BurnerLive do
                 </div>
 
                 <%= if @status != :idle do %>
-                  <div class="pt-8 animate-in fade-in duration-500">
+                  <div class="pt-8">
                     <div class="flex justify-between items-end mb-2">
                       <div class="text-sm font-bold text-gray-900">{@message}</div>
                       <div class="text-xs font-mono text-gray-400">{@progress}%</div>
@@ -261,7 +261,7 @@ defmodule NervesDesktopWeb.BurnerLive do
                 <% end %>
 
                 <%= if @status == :success do %>
-                  <div class="mt-4 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 flex items-center gap-3 animate-bounce">
+                  <div class="mt-4 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 flex items-center gap-3">
                     <.icon name="hero-check-circle" class="w-6 h-6" />
                     <div class="text-sm font-bold">Successfully flashed! You can now eject the storage device.</div>
                   </div>

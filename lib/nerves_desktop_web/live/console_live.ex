@@ -196,7 +196,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
               <div class="flex items-center gap-3">
                 <div :if={@status == :connected} class="flex items-center gap-2 text-xs text-green-500 font-bold uppercase tracking-widest">
                   <span>Online</span>
-                  <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
                 </div>
               </div>
             </div>

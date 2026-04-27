@@ -56,7 +56,9 @@ defmodule NervesDesktopWeb.HomeLive do
             </div>
             <div class="h-8 w-px bg-gray-100"></div>
             <div class="flex flex-col items-end">
-              <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Last Scan</span>
+              <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                Last Scan
+              </span>
               <time
                 id="last-scan-time"
                 datetime={DateTime.to_iso8601(@last_scan_at)}
@@ -101,21 +103,27 @@ defmodule NervesDesktopWeb.HomeLive do
                     <.icon name="hero-wifi" class="w-6 h-6 text-primary" />
                   </div>
                   <h4 class="font-bold text-gray-900 text-sm mb-2">Network</h4>
-                  <p class="text-xs text-gray-500 leading-normal">Ensure your device is on the same network.</p>
+                  <p class="text-xs text-gray-500 leading-normal">
+                    Ensure your device is on the same network.
+                  </p>
                 </div>
                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left">
                   <div class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4">
                     <.icon name="hero-shield-exclamation" class="w-6 h-6 text-primary" />
                   </div>
                   <h4 class="font-bold text-gray-900 text-sm mb-2">Firewall</h4>
-                  <p class="text-xs text-gray-500 leading-normal">Check if mDNS is blocked on UDP 5353.</p>
+                  <p class="text-xs text-gray-500 leading-normal">
+                    Check if mDNS is blocked on UDP 5353.
+                  </p>
                 </div>
                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left">
                   <div class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4">
                     <.icon name="hero-bolt" class="w-6 h-6 text-primary" />
                   </div>
                   <h4 class="font-bold text-gray-900 text-sm mb-2">Power</h4>
-                  <p class="text-xs text-gray-500 leading-normal">Confirm your Nerves device is booted.</p>
+                  <p class="text-xs text-gray-500 leading-normal">
+                    Confirm your Nerves device is booted.
+                  </p>
                 </div>
               </div>
             </div>
@@ -130,7 +138,11 @@ defmodule NervesDesktopWeb.HomeLive do
                 </div>
                 <h3 class="text-2xl font-bold mb-4">Enhance Discovery</h3>
                 <p class="text-gray-500 mb-8 leading-relaxed">
-                  Add this snippet to your <code class="text-primary font-bold bg-primary/5 px-1 rounded">application.ex</code> to share rich metadata via mDNS.
+                  Add this snippet to your
+                  <code class="text-primary font-bold bg-primary/5 px-1 rounded">
+                    Application.start/2
+                  </code>
+                  to share rich metadata via mDNS.
                 </p>
 
                 <div class="flex-1 bg-white rounded-2xl p-6 font-mono text-[11px] overflow-x-auto border border-gray-200 relative group shadow-inner">
@@ -152,10 +164,18 @@ defmodule NervesDesktopWeb.HomeLive do
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-gray-50/50 border-b border-gray-100">
-                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">Device Identity</th>
-                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">Network Address</th>
-                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">Firmware Details</th>
-                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400 text-right">Actions</th>
+                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">
+                      Device Identity
+                    </th>
+                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">
+                      Network Address
+                    </th>
+                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">
+                      Firmware Details
+                    </th>
+                    <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400 text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -164,16 +184,26 @@ defmodule NervesDesktopWeb.HomeLive do
                       <td class="px-8 py-6">
                         <div class="flex items-center gap-4">
                           <div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all">
-                            <.icon name="hero-cpu-chip" class="w-5 h-5 text-gray-400 group-hover:text-primary" />
+                            <.icon
+                              name="hero-cpu-chip"
+                              class="w-5 h-5 text-gray-400 group-hover:text-primary"
+                            />
                           </div>
                           <div>
                             <div class="font-bold text-gray-900 text-lg">{device.name}</div>
                             <div
                               class="text-xs text-gray-400 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
-                              phx-click={device.hostname && JS.dispatch("phx:copy", detail: %{text: device.hostname})}
+                              phx-click={
+                                device.hostname &&
+                                  JS.dispatch("phx:copy", detail: %{text: device.hostname})
+                              }
                             >
                               {device.hostname || "unknown"}
-                              <.icon :if={device.hostname} name="hero-clipboard-document" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <.icon
+                                :if={device.hostname}
+                                name="hero-clipboard-document"
+                                class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
                             </div>
                           </div>
                         </div>
@@ -184,23 +214,34 @@ defmodule NervesDesktopWeb.HomeLive do
                           phx-click={device.ip && JS.dispatch("phx:copy", detail: %{text: device.ip})}
                         >
                           {device.ip || "?.?.?.?"}
-                          <.icon :if={device.ip} name="hero-clipboard" class="w-4 h-4 opacity-50 group-hover/ip:opacity-100" />
+                          <.icon
+                            :if={device.ip}
+                            name="hero-clipboard"
+                            class="w-4 h-4 opacity-50 group-hover/ip:opacity-100"
+                          />
                         </div>
                       </td>
                       <td class="px-8 py-6">
-                        <div class="text-gray-900 font-bold">{device.product || "Unknown Product"}</div>
+                        <div class="text-gray-900 font-bold">
+                          {device.product || "Unknown Product"}
+                        </div>
                         <div class="flex items-center gap-2 mt-1">
-                          <span class="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md">Version</span>
-                          <span class="text-xs text-gray-400 font-mono">{device.version || "---"}</span>
+                          <span class="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md">
+                            Version
+                          </span>
+                          <span class="text-xs text-gray-400 font-mono">
+                            {device.version || "---"}
+                          </span>
                         </div>
                       </td>
                       <td class="px-8 py-6 text-right">
                         <.link
-                          navigate={~p"/console?ip=#{device.ip}&name=#{device.name || device.hostname}"}
+                          navigate={
+                            ~p"/console?ip=#{device.ip}&name=#{device.name || device.hostname}"
+                          }
                           class="btn btn-sm btn-ghost text-primary hover:bg-primary hover:text-white rounded-xl flex items-center gap-2 w-fit ml-auto shadow-sm transition-all"
                         >
-                          <.icon name="hero-command-line" class="w-4 h-4" />
-                          Console
+                          <.icon name="hero-command-line" class="w-4 h-4" /> Console
                         </.link>
                       </td>
                     </tr>
