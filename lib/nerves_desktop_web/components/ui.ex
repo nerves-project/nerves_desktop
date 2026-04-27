@@ -13,7 +13,7 @@ defmodule NervesDesktopWeb.UI do
   def scanning_status(assigns) do
     ~H"""
     <div class={[
-      "flex flex-nowrap items-center justify-between lg:justify-start gap-4 lg:gap-6 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100",
+      "flex flex-nowrap items-center justify-between lg:justify-start gap-4 lg:gap-6 bg-white py-2 px-3 rounded-2xl shadow-sm border border-gray-100",
       @class
     ]}>
       <div class="flex flex-col items-start lg:items-end shrink-0">
@@ -48,10 +48,10 @@ defmodule NervesDesktopWeb.UI do
         <div class="shrink-0">
           <button
             phx-click={@on_refresh}
-            class="btn btn-primary btn-sm lg:btn-md shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] h-10 lg:h-12"
+            class="btn btn-primary btn-sm shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] h-8"
             phx-throttle="2000"
           >
-            <.icon name="hero-arrow-path" class="w-4 h-4 lg:w-5 lg:h-5" />
+            <.icon name="hero-arrow-path" class="w-4 h-4" />
             <span class="hidden sm:inline">Refresh</span>
           </button>
         </div>
