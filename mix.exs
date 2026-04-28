@@ -40,6 +40,7 @@ defmodule NervesDesktop.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:circuits_uart, "~> 1.0"},
       {:tidewave, "~> 0.5", only: [:dev]},
       {:phoenix, "~> 1.8.5"},
       {:phoenix_html, "~> 4.1"},
