@@ -66,7 +66,7 @@ defmodule NervesDesktop.Connections.UART do
 
   @impl true
   def handle_call(:get_history, _from, state) do
-    {:reply, IO.iodata_to_binary(state.history), state}
+    {:reply, IO.iodata_to_binary(Enum.reverse(state.history)), state}
   end
 
   @impl true
@@ -76,13 +76,13 @@ defmodule NervesDesktop.Connections.UART do
   end
 
   @impl true
-  def handle_info({:circuits_uart, _port, data}, state) do
+  def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do
     data_size = byte_size(data)
     {new_history, new_size} = 
       if state.history_size + data_size > @history_limit do
         {[data], data_size}
       else
-        {state.history ++ [data], state.history_size + data_size}
+        {[data | state.history], state.history_size + data_size}
       end
 
     broadcast_output(state.target, data)
@@ -90,7 +90,7 @@ defmodule NervesDesktop.Connections.UART do
   end
 
   @impl true
-  def handle_info({:uart_error, _pid, reason}, state) do
+  def handle_info({:circuits_uart, _port, {:error, reason}}, state) do
     Logger.error("UART Error on #{state.target}: #{inspect(reason)}")
     broadcast_output(state.target, "\r\n\x1B[1;31m[UART Error: #{inspect(reason)}]\x1B[0m\r\n")
     broadcast_closed(state.target)

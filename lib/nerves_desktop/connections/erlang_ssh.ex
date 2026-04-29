@@ -85,7 +85,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
   @impl true
   def handle_call(:get_history, _from, state) do
-    {:reply, IO.iodata_to_binary(state.history), state}
+    {:reply, IO.iodata_to_binary(Enum.reverse(state.history)), state}
   end
 
   @impl true
@@ -104,7 +104,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
       if state.history_size + data_size > @history_limit do
         {[data], data_size}
       else
-        {state.history ++ [data], state.history_size + data_size}
+        {[data | state.history], state.history_size + data_size}
       end
 
     broadcast_output(state.target, data)
