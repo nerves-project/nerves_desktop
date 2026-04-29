@@ -26,8 +26,12 @@ defmodule NervesDesktopWeb.ConsoleLive do
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns.subscribed_target do
-      Phoenix.PubSub.unsubscribe(NervesDesktop.PubSub, "connection_output:#{socket.assigns.subscribed_target}")
+      Phoenix.PubSub.unsubscribe(
+        NervesDesktop.PubSub,
+        "connection_output:#{socket.assigns.subscribed_target}"
+      )
     end
+
     :ok
   end
 
@@ -64,7 +68,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
     case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
       [{pid, module}] when is_atom(module) ->
         Logger.info("Found existing connection for #{target} using #{inspect(module)}")
-        
+
         socket = subscribe_to_target(socket, target)
         history = apply(module, :get_history, [pid])
 
@@ -82,13 +86,16 @@ defmodule NervesDesktopWeb.ConsoleLive do
   defp subscribe_to_target(socket, target) do
     if socket.assigns.subscribed_target != target do
       if socket.assigns.subscribed_target do
-        Phoenix.PubSub.unsubscribe(NervesDesktop.PubSub, "connection_output:#{socket.assigns.subscribed_target}")
+        Phoenix.PubSub.unsubscribe(
+          NervesDesktop.PubSub,
+          "connection_output:#{socket.assigns.subscribed_target}"
+        )
       end
-      
+
       if connected?(socket) do
         Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "connection_output:#{target}")
       end
-      
+
       assign(socket, subscribed_target: target)
     else
       socket
@@ -97,7 +104,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
   @impl true
   def handle_info(:auto_connect, socket) do
-    handle_event("connect", %{}, socket)
+    socket.assigns.selected_target
+    |> validate_target()
+    |> perform_connection(socket)
   end
 
   @impl true
@@ -134,7 +143,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
         %{"connection" => %{"target" => target, "password" => password}},
         socket
       ) do
-    device = Enum.find(socket.assigns.devices, &(&1.target == target))
+    device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
 
     {:noreply,
      socket
@@ -145,63 +154,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
   @impl true
   def handle_event("connect", _params, socket) do
-    target = socket.assigns.selected_target
-
-    if target in [nil, ""] do
-      {:noreply, put_flash(socket, :error, "Please select a device first.")}
-    else
-      device = Enum.find(socket.assigns.devices, &(&1.target == target))
-      type = (device && device[:type]) || :network
-      
-      module = 
-        if type == :uart do
-          UART
-        else
-          case Application.get_env(:nerves_desktop, :ssh_client, :system_ssh) do
-            :system_ssh -> SystemSSH
-            :erlang_ssh -> ErlangSSH
-          end
-        end
-
-      push_event(socket, "print", %{
-        data: "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
-      })
-
-      # Start child if not already running
-      case ConnectionSupervisor.start_child(module, [target: target]) do
-        {:ok, pid} ->
-          socket = subscribe_to_target(socket, target)
-
-          module.connect(
-            pid,
-            target,
-            "root",
-            if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
-          )
-
-          {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
-
-        {:error, {:already_started, pid}} ->
-          # Already running, just bind
-          socket = subscribe_to_target(socket, target)
-          
-          # Re-fetch module from Registry to be sure
-          module = case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
-            [{_, m}] -> m
-            _ -> module
-          end
-
-          history = apply(module, :get_history, [pid])
-          
-          {:noreply, 
-           socket 
-           |> assign(status: :connected, connection_pid: pid, connection_module: module)
-           |> push_event("print", %{data: history})}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Failed to start connection: #{inspect(reason)}")}
-      end
-    end
+    socket.assigns.selected_target
+    |> validate_target()
+    |> perform_connection(socket)
   end
 
   @impl true
@@ -223,7 +178,71 @@ defmodule NervesDesktopWeb.ConsoleLive do
     if socket.assigns.connection_pid && socket.assigns.connection_module do
       socket.assigns.connection_module.send_data(socket.assigns.connection_pid, data)
     end
+
     {:noreply, socket}
+  end
+
+  defp validate_target(nil), do: {:error, :no_target}
+  defp validate_target(""), do: {:error, :no_target}
+  defp validate_target(target), do: {:ok, target}
+
+  defp perform_connection({:error, :no_target}, socket) do
+    {:noreply, put_flash(socket, :error, "Please select a device first.")}
+  end
+
+  defp perform_connection({:ok, target}, socket) do
+    device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
+    module = get_connection_module(device)
+
+    socket =
+      push_event(socket, "print", %{
+        data: "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
+      })
+
+    # Start child if not already running
+    ConnectionSupervisor.start_child(module, target: target)
+    |> handle_connection_result(socket, module, target)
+  end
+
+  defp get_connection_module(%{type: :uart}), do: UART
+
+  defp get_connection_module(_device) do
+    case Application.get_env(:nerves_desktop, :ssh_client, :system_ssh) do
+      :system_ssh -> SystemSSH
+      :erlang_ssh -> ErlangSSH
+    end
+  end
+
+  defp handle_connection_result({:ok, pid}, socket, module, target) do
+    socket = subscribe_to_target(socket, target)
+
+    password = if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
+    module.connect(pid, target, "root", password)
+
+    {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
+  end
+
+  defp handle_connection_result({:error, {:already_started, pid}}, socket, module, target) do
+    # Already running, just bind
+    socket = subscribe_to_target(socket, target)
+
+    # Re-fetch module from Registry to be sure
+    module =
+      case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
+        [{_, m}] -> m
+        _ -> module
+      end
+
+    history = apply(module, :get_history, [pid])
+
+    {:noreply,
+     socket
+     |> assign(status: :connected, connection_pid: pid, connection_module: module)
+     |> push_event("print", %{data: history})}
+  end
+
+  defp handle_connection_result({:error, reason}, socket, _module, _target) do
+    {:noreply, put_flash(socket, :error, "Failed to start connection: #{inspect(reason)}")}
   end
 
   @impl true
@@ -244,10 +263,15 @@ defmodule NervesDesktopWeb.ConsoleLive do
           />
         </:actions>
       </UI.page_header>
-      
-      <div :if={@status == :connected && @connection_module != UART} class="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-800 text-xs">
+
+      <div
+        :if={@status == :connected && @connection_module != UART}
+        class="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-800 text-xs"
+      >
         <.icon name="hero-exclamation-triangle" class="w-4 h-4 text-yellow-600" />
-        <span>Host key verification is disabled for this session. Connect only to trusted devices on secure networks.</span>
+        <span>
+          Host key verification is disabled for this session. Connect only to trusted devices on secure networks.
+        </span>
       </div>
 
       <div class="flex-1 flex flex-col min-h-0">
@@ -285,7 +309,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
     <!-- Terminal Footer -->
           <div class="bg-gray-800/30 px-6 py-3 border-t border-gray-700/50 flex justify-between items-center">
             <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest text-ellipsis overflow-hidden whitespace-nowrap">
-              Interactive PTY Mode — {if @connection_module, do: inspect(@connection_module), else: "Not Connected"}
+              Interactive PTY Mode — {if @connection_module,
+                do: inspect(@connection_module),
+                else: "Not Connected"}
             </div>
             <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest hidden sm:block">
               UTF-8 / PTY
