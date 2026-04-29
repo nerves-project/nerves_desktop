@@ -51,6 +51,8 @@ defmodule NervesDesktop.Connections.UART do
 
     case Circuits.UART.open(state.uart_pid, target, speed: 115_200, active: true) do
       :ok ->
+        # Send a newline to trigger the remote prompt
+        Circuits.UART.write(state.uart_pid, "\r\n")
         {:reply, :ok, %{state | target: target, history: [], history_size: 0}}
 
       {:error, reason} ->

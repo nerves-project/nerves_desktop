@@ -42,12 +42,23 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(selected_target: target)
         |> assign(selected_name: name)
         |> check_existing_connection(target)
+        |> maybe_auto_connect()
       else
         socket
       end
 
     {:noreply, socket}
   end
+
+  defp maybe_auto_connect(%{assigns: %{status: :disconnected}} = socket) do
+    if connected?(socket) do
+      Process.send_after(self(), :auto_connect, 500)
+    end
+
+    socket
+  end
+
+  defp maybe_auto_connect(socket), do: socket
 
   defp check_existing_connection(socket, target) do
     case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
@@ -82,6 +93,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
     else
       socket
     end
+  end
+
+  @impl true
+  def handle_info(:auto_connect, socket) do
+    handle_event("connect", %{}, socket)
   end
 
   @impl true
