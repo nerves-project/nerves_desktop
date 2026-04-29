@@ -95,7 +95,7 @@ defmodule NervesDesktopWeb.UI do
   Renders an SSH connection form for selecting a device and entering a password.
   """
   attr :devices, :list, required: true
-  attr :selected_ip, :string, required: true
+  attr :selected_target, :string, required: true
   attr :password, :string, required: true
   # :disconnected or other
   attr :status, :atom, required: true
@@ -108,19 +108,19 @@ defmodule NervesDesktopWeb.UI do
     <div class="overflow-x-auto">
       <.form
         :let={f}
-        for={to_form(%{"ip" => @selected_ip, "password" => @password}, as: :connection)}
+        for={to_form(%{"target" => @selected_target, "password" => @password}, as: :connection)}
         phx-change={@on_change}
         phx-submit={@on_submit}
         class="flex flex-nowrap items-end gap-3 min-w-max"
       >
-        <div class="w-fit min-w-[140px] shrink-0">
+        <div class="w-fit min-w-[180px] shrink-0">
           <.input
-            field={f[:ip]}
+            field={f[:target]}
             type="select"
             label="Target Device"
             disabled={@status != :disconnected}
             options={[
-              {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.ip})
+              {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.target})
             ]}
           />
         </div>

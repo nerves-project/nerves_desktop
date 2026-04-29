@@ -54,7 +54,7 @@ defmodule NervesDesktopWeb.HomeLive do
             </div>
             <h3 class="text-2xl font-bold text-gray-900">No devices found</h3>
             <p class="text-gray-500 mt-3 max-w-md leading-relaxed">
-              We're currently scanning your network for Nerves devices. If your device isn't showing up, try these steps:
+              We're currently scanning your network and serial ports for Nerves devices. If your device isn't showing up, try these steps:
             </p>
 
             <div class="mt-10 w-full grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -69,11 +69,11 @@ defmodule NervesDesktopWeb.HomeLive do
               </div>
               <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left">
                 <div class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4">
-                  <.icon name="hero-shield-exclamation" class="w-6 h-6 text-primary" />
+                  <.icon name="hero-cable" class="w-6 h-6 text-primary" />
                 </div>
-                <h4 class="font-bold text-gray-900 text-sm mb-2">Firewall</h4>
+                <h4 class="font-bold text-gray-900 text-sm mb-2">Serial</h4>
                 <p class="text-xs text-gray-500 leading-normal">
-                  Check if mDNS is blocked on UDP 5353.
+                  Connect via USB to use UART console.
                 </p>
               </div>
               <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left">
@@ -128,7 +128,7 @@ defmodule NervesDesktopWeb.HomeLive do
                     Device Identity
                   </th>
                   <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">
-                    Network Address
+                    Type / Address
                   </th>
                   <th class="px-8 py-5 text-xs uppercase tracking-widest font-bold text-gray-400">
                     Firmware Details
@@ -143,17 +143,17 @@ defmodule NervesDesktopWeb.HomeLive do
                   <tr class="hover:bg-primary/[0.02] transition-colors group">
                     <td class="px-8 py-4">
                       <div>
-                        <div class="font-bold text-gray-900 text-base">{device.name}</div>
+                        <div class="font-bold text-gray-900 text-base">{device[:name]}</div>
                         <div
                           class="text-[10px] text-gray-400 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
                           phx-click={
-                            device.hostname &&
-                              JS.dispatch("phx:copy", detail: %{text: device.hostname})
+                            device[:hostname] &&
+                              JS.dispatch("phx:copy", detail: %{text: device[:hostname]})
                           }
                         >
-                          {device.hostname || "unknown"}
+                          {device[:hostname] || "unknown"}
                           <.icon
-                            :if={device.hostname}
+                            :if={device[:hostname]}
                             name="hero-clipboard"
                             class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
                           />
@@ -161,35 +161,42 @@ defmodule NervesDesktopWeb.HomeLive do
                       </div>
                     </td>
                     <td class="px-8 py-4">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class={[
+                          "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                          device[:type] == :network && "bg-blue-100 text-blue-700",
+                          device[:type] == :uart && "bg-purple-100 text-purple-700"
+                        ]}>
+                          {device[:type]}
+                        </span>
+                      </div>
                       <div
-                        :if={device.ip}
-                        phx-click={JS.dispatch("phx:copy", detail: %{text: device.ip})}
+                        phx-click={JS.dispatch("phx:copy", detail: %{text: device[:target]})}
                         class="inline-flex items-center gap-2 px-2 py-1 -ml-2 text-sm font-mono font-bold text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg cursor-pointer transition-all group/ip"
-                        title="Click to copy IP"
+                        title="Click to copy"
                       >
-                        {device.ip}
+                        {device[:target]}
                         <.icon
                           name="hero-clipboard"
                           class="w-4 h-4 text-gray-300 group-hover/ip:text-primary transition-colors"
                         />
                       </div>
-                      <div :if={!device.ip} class="text-sm font-mono font-bold text-gray-300">
-                        ?.?.?.?
-                      </div>
                     </td>
                     <td class="px-8 py-4">
                       <div class="text-gray-900 font-bold text-sm">
-                        {device.product || "Unknown Product"}
+                        {device[:product] || "Unknown"}
                       </div>
                       <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                        <span class="font-mono">{device.version || "---"}</span>
+                        <span class="font-mono">{device[:version] || "---"}</span>
                         <span :if={device[:platform]} class="text-gray-200">•</span>
-                        <span :if={device[:platform]}>{device.platform}</span>
+                        <span :if={device[:platform]}>{device[:platform]}</span>
                       </div>
                     </td>
                     <td class="px-8 py-4 text-right">
                       <.link
-                        navigate={~p"/console?ip=#{device.ip}&name=#{device.name || device.hostname}"}
+                        navigate={
+                          ~p"/console?target=#{device[:target]}&name=#{device[:name] || device[:hostname]}"
+                        }
                         class="btn btn-primary btn-md rounded-2xl flex items-center gap-2 w-fit ml-auto shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         <.icon name="hero-command-line" class="w-5 h-5" /> Console

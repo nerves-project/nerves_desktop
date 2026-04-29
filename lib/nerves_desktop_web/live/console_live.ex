@@ -1,45 +1,47 @@
 defmodule NervesDesktopWeb.ConsoleLive do
   use NervesDesktopWeb, :live_view
 
-  alias NervesDesktop.SSHConnection
+  require Logger
+  alias NervesDesktop.ConnectionSupervisor
+  alias NervesDesktop.Connections.{SystemSSH, ErlangSSH, UART}
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "discovery")
-      Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "ssh_connection")
     end
-
-    {:ok, pid} = SSHConnection.start_link([])
 
     {:ok,
      socket
      |> assign(devices: NervesDesktop.DeviceScanner.get_devices())
-     |> assign(ssh_pid: pid)
+     |> assign(connection_pid: nil)
+     |> assign(connection_module: nil)
      |> assign(status: :disconnected)
-     |> assign(selected_ip: nil)
+     |> assign(selected_target: nil)
+     |> assign(subscribed_target: nil)
      |> assign(selected_name: nil)
      |> assign(password: "")}
   end
 
   @impl true
+  def terminate(_reason, socket) do
+    if socket.assigns.subscribed_target do
+      Phoenix.PubSub.unsubscribe(NervesDesktop.PubSub, "connection_output:#{socket.assigns.subscribed_target}")
+    end
+    :ok
+  end
+
+  @impl true
   def handle_params(params, _url, socket) do
-    ip = params["ip"]
+    target = params["target"] || params["ip"]
     name = params["name"]
 
     socket =
-      if ip do
+      if target do
         socket
-        |> assign(selected_ip: ip)
+        |> assign(selected_target: target)
         |> assign(selected_name: name)
-        |> then(fn s ->
-          if connected?(s) do
-            Process.send_after(self(), :auto_connect, 500)
-            s
-          else
-            s
-          end
-        end)
+        |> check_existing_connection(target)
       else
         socket
       end
@@ -47,9 +49,39 @@ defmodule NervesDesktopWeb.ConsoleLive do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_info(:auto_connect, socket) do
-    handle_event("connect", %{}, socket)
+  defp check_existing_connection(socket, target) do
+    case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
+      [{pid, module}] when is_atom(module) ->
+        Logger.info("Found existing connection for #{target} using #{inspect(module)}")
+        
+        socket = subscribe_to_target(socket, target)
+        history = apply(module, :get_history, [pid])
+
+        socket
+        |> assign(connection_pid: pid)
+        |> assign(connection_module: module)
+        |> assign(status: :connected)
+        |> push_event("print", %{data: history})
+
+      _ ->
+        socket
+    end
+  end
+
+  defp subscribe_to_target(socket, target) do
+    if socket.assigns.subscribed_target != target do
+      if socket.assigns.subscribed_target do
+        Phoenix.PubSub.unsubscribe(NervesDesktop.PubSub, "connection_output:#{socket.assigns.subscribed_target}")
+      end
+      
+      if connected?(socket) do
+        Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "connection_output:#{target}")
+      end
+      
+      assign(socket, subscribed_target: target)
+    else
+      socket
+    end
   end
 
   @impl true
@@ -58,8 +90,8 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
-  def handle_info({:ssh_output, device_ip, data}, socket) do
-    if socket.assigns.selected_ip == device_ip do
+  def handle_info({:connection_output, target, data}, socket) do
+    if socket.assigns.selected_target == target do
       {:noreply, push_event(socket, "print", %{data: data})}
     else
       {:noreply, socket}
@@ -67,12 +99,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
-  def handle_info({:ssh_closed, device_ip}, socket) do
-    if socket.assigns.selected_ip == device_ip do
+  def handle_info({:connection_closed, target}, socket) do
+    if socket.assigns.selected_target == target do
       {:noreply,
        socket
        |> assign(status: :disconnected)
-       |> put_flash(:error, "SSH connection closed unexpectedly.")}
+       |> assign(connection_pid: nil)
+       |> assign(connection_module: nil)
+       |> put_flash(:error, "Connection closed.")}
     else
       {:noreply, socket}
     end
@@ -81,51 +115,98 @@ defmodule NervesDesktopWeb.ConsoleLive do
   @impl true
   def handle_event(
         "validate_connection",
-        %{"connection" => %{"ip" => ip, "password" => password}},
+        %{"connection" => %{"target" => target, "password" => password}},
         socket
       ) do
-    device = Enum.find(socket.assigns.devices, &(&1.ip == ip))
+    device = Enum.find(socket.assigns.devices, &(&1.target == target))
 
     {:noreply,
      socket
-     |> assign(selected_ip: ip)
+     |> assign(selected_target: target)
      |> assign(password: password)
-     |> assign(selected_name: device && (device.name || device.hostname))}
+     |> assign(selected_name: device && (device[:name] || device[:hostname]))}
   end
 
   @impl true
   def handle_event("connect", _params, socket) do
-    if socket.assigns.selected_ip in [nil, ""] do
+    target = socket.assigns.selected_target
+
+    if target in [nil, ""] do
       {:noreply, put_flash(socket, :error, "Please select a device first.")}
     else
+      device = Enum.find(socket.assigns.devices, &(&1.target == target))
+      type = (device && device[:type]) || :network
+      
+      module = 
+        if type == :uart do
+          UART
+        else
+          case Application.get_env(:nerves_desktop, :ssh_client, :system_ssh) do
+            :system_ssh -> SystemSSH
+            :erlang_ssh -> ErlangSSH
+          end
+        end
+
       push_event(socket, "print", %{
-        data: "\r\n\x1B[1;33mConnecting to #{socket.assigns.selected_ip}...\x1B[0m\r\n"
+        data: "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
       })
 
-      SSHConnection.connect(
-        socket.assigns.ssh_pid,
-        socket.assigns.selected_ip,
-        "root",
-        if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
-      )
+      # Start child if not already running
+      case ConnectionSupervisor.start_child(module, [target: target]) do
+        {:ok, pid} ->
+          socket = subscribe_to_target(socket, target)
 
-      {:noreply, assign(socket, status: :connected)}
+          module.connect(
+            pid,
+            target,
+            "root",
+            if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
+          )
+
+          {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
+
+        {:error, {:already_started, pid}} ->
+          # Already running, just bind
+          socket = subscribe_to_target(socket, target)
+          
+          # Re-fetch module from Registry to be sure
+          module = case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
+            [{_, m}] -> m
+            _ -> module
+          end
+
+          history = apply(module, :get_history, [pid])
+          
+          {:noreply, 
+           socket 
+           |> assign(status: :connected, connection_pid: pid, connection_module: module)
+           |> push_event("print", %{data: history})}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Failed to start connection: #{inspect(reason)}")}
+      end
     end
   end
 
   @impl true
   def handle_event("disconnect", _params, socket) do
-    SSHConnection.disconnect(socket.assigns.ssh_pid)
+    if socket.assigns.connection_pid do
+      ConnectionSupervisor.stop_child(socket.assigns.connection_pid)
+    end
 
     {:noreply,
      socket
      |> assign(status: :disconnected)
+     |> assign(connection_pid: nil)
+     |> assign(connection_module: nil)
      |> push_event("print", %{data: "\r\n\x1B[1;31mSession disconnected.\x1B[0m\r\n"})}
   end
 
   @impl true
   def handle_event("data", %{"data" => data}, socket) do
-    SSHConnection.send_data(socket.assigns.ssh_pid, data)
+    if socket.assigns.connection_pid && socket.assigns.connection_module do
+      socket.assigns.connection_module.send_data(socket.assigns.connection_pid, data)
+    end
     {:noreply, socket}
   end
 
@@ -136,17 +217,23 @@ defmodule NervesDesktopWeb.ConsoleLive do
       <UI.page_header
         icon="hero-command-line"
         title="Device Console"
-        subtitle="Interactive terminal via system SSH"
+        subtitle="Interactive terminal via SSH or UART"
       >
         <:actions>
           <UI.ssh_connection_form
             devices={@devices}
-            selected_ip={@selected_ip}
+            selected_target={@selected_target}
             password={@password}
             status={@status}
           />
         </:actions>
       </UI.page_header>
+      
+      <div :if={@status == :connected && @connection_module != UART} class="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-800 text-xs">
+        <.icon name="hero-exclamation-triangle" class="w-4 h-4 text-yellow-600" />
+        <span>Host key verification is disabled for this session. Connect only to trusted devices on secure networks.</span>
+      </div>
+
       <div class="flex-1 flex flex-col min-h-0">
         <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 h-[600px]">
           <!-- Terminal Header -->
@@ -160,7 +247,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
               <div class="h-4 w-px bg-gray-700"></div>
               <div class="text-xs font-mono text-gray-400 flex items-center gap-2">
                 <.icon name="hero-server" class="w-3 h-3" />
-                {@selected_name || "no-session"} — root@{@selected_ip || "localhost"}
+                {@selected_name || "no-session"} — {@selected_target || "localhost"}
               </div>
             </div>
             <div class="flex items-center gap-3">
@@ -182,7 +269,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
     <!-- Terminal Footer -->
           <div class="bg-gray-800/30 px-6 py-3 border-t border-gray-700/50 flex justify-between items-center">
             <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest text-ellipsis overflow-hidden whitespace-nowrap">
-              Interactive PTY Mode — System SSH
+              Interactive PTY Mode — {if @connection_module, do: inspect(@connection_module), else: "Not Connected"}
             </div>
             <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest hidden sm:block">
               UTF-8 / PTY

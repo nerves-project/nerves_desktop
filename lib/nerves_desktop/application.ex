@@ -13,6 +13,8 @@ defmodule NervesDesktop.Application do
       NervesDesktopWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:nerves_desktop, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NervesDesktop.PubSub},
+      {Registry, keys: :unique, name: NervesDesktop.ConnectionRegistry},
+      NervesDesktop.ConnectionSupervisor,
       {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
       {Task.Supervisor, name: NervesDesktop.TaskSupervisor},
       {NervesDesktop.DeviceScanner, []},
