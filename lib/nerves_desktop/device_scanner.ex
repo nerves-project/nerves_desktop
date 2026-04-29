@@ -85,9 +85,16 @@ defmodule NervesDesktop.DeviceScanner do
   end
 
   defp normalize_network_device(device) do
+    target =
+      if device[:hostname] && device[:hostname] != "" do
+        device.hostname
+      else
+        device.ip
+      end
+
     Map.merge(device, %{
-      id: "network:#{device.ip}",
-      target: device.ip,
+      id: "network:#{target}",
+      target: target,
       type: :network,
       product: device[:product],
       version: device[:version],
