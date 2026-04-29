@@ -40,9 +40,25 @@ defmodule NervesDesktopWeb.ConsoleLive do
     target = params["target"] || params["ip"]
     name = params["name"]
 
+    {target, name} =
+      if is_nil(target) do
+        case Registry.select(NervesDesktop.ConnectionRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]) do
+          [active_target | _] ->
+            device = Enum.find(socket.assigns.devices, &(&1[:target] == active_target))
+            active_name = (device && (device[:name] || device[:hostname])) || "Unknown"
+            {active_target, active_name}
+
+          [] ->
+            {nil, nil}
+        end
+      else
+        {target, name}
+      end
+
     socket =
       if target do
         socket
+        |> maybe_clear_terminal(target)
         |> assign(selected_target: target)
         |> assign(selected_name: name)
         |> check_existing_connection(target)
@@ -52,6 +68,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
       end
 
     {:noreply, socket}
+  end
+
+  defp maybe_clear_terminal(socket, new_target) do
+    if socket.assigns.selected_target != new_target do
+      push_event(socket, "clear", %{})
+    else
+      socket
+    end
   end
 
   defp maybe_auto_connect(%{assigns: %{status: :disconnected}} = socket) do
@@ -76,7 +100,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(connection_pid: pid)
         |> assign(connection_module: module)
         |> assign(status: :connected)
-        |> push_event("print", %{data: history})
+        |> push_print(history)
 
       _ ->
         socket
@@ -102,6 +126,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
     end
   end
 
+  defp push_print(socket, data) do
+    b64_data = Base.encode64(data)
+    push_event(socket, "print", %{data: b64_data})
+  end
+
   @impl true
   def handle_info(:auto_connect, socket) do
     socket.assigns.selected_target
@@ -117,7 +146,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
   @impl true
   def handle_info({:connection_output, target, data}, socket) do
     if socket.assigns.selected_target == target do
-      {:noreply, push_event(socket, "print", %{data: data})}
+      {:noreply, push_print(socket, data)}
     else
       {:noreply, socket}
     end
@@ -147,6 +176,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     {:noreply,
      socket
+     |> maybe_clear_terminal(target)
      |> assign(selected_target: target)
      |> assign(password: password)
      |> assign(selected_name: device && (device[:name] || device[:hostname]))}
@@ -170,7 +200,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
      |> assign(status: :disconnected)
      |> assign(connection_pid: nil)
      |> assign(connection_module: nil)
-     |> push_event("print", %{data: "\r\n\x1B[1;31mSession disconnected.\x1B[0m\r\n"})}
+     |> push_print("\r\n\x1B[1;31mSession disconnected.\x1B[0m\r\n")}
   end
 
   @impl true
@@ -194,13 +224,10 @@ defmodule NervesDesktopWeb.ConsoleLive do
     device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
     module = get_connection_module(device)
 
-    socket =
-      push_event(socket, "print", %{
-        data: "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
-      })
+    socket = push_print(socket, "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n")
 
     # Start child if not already running
-    ConnectionSupervisor.start_child(module, target: target)
+    ConnectionSupervisor.start_child(module, [target: target])
     |> handle_connection_result(socket, module, target)
   end
 
@@ -238,7 +265,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
     {:noreply,
      socket
      |> assign(status: :connected, connection_pid: pid, connection_module: module)
-     |> push_event("print", %{data: history})}
+     |> push_print(history)}
   end
 
   defp handle_connection_result({:error, reason}, socket, _module, _target) do

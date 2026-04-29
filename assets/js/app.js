@@ -86,7 +86,17 @@ let Hooks = {
       this.resizeObserver.observe(this.el)
       
       this.handleEvent("print", ({data}) => {
-        this.term.write(data)
+        const binaryString = atob(data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        this.term.write(bytes)
+      })
+
+      this.handleEvent("clear", () => {
+        this.term.clear()
+        this.term.reset()
       })
 
       this.term.onData(data => {
