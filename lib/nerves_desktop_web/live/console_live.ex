@@ -244,9 +244,15 @@ defmodule NervesDesktopWeb.ConsoleLive do
     socket = subscribe_to_target(socket, target)
 
     password = if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
-    module.connect(pid, target, "root", password)
-
-    {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
+    
+    case module.connect(pid, target, "root", password) do
+      :ok ->
+        {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
+        
+      {:error, reason} ->
+        ConnectionSupervisor.stop_child(pid)
+        {:noreply, put_flash(socket, :error, "Connection failed: #{inspect(reason)}")}
+    end
   end
 
   defp handle_connection_result({:error, {:already_started, pid}}, socket, module, target) do

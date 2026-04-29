@@ -17,7 +17,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
   @impl NervesDesktop.Connection
   def connect(pid, target, user, password) do
-    GenServer.call(pid, {:connect, target, user, password}, 10_000)
+    GenServer.call(pid, {:connect, target, user, password}, 15_000)
   end
 
   @impl NervesDesktop.Connection
@@ -45,7 +45,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
   @impl true
   def handle_call({:connect, target, user, password}, _from, state) do
-    Logger.info("Opening Erlang SSH connection to #{target}")
+    Logger.info("Opening Erlang SSH connection to #{target} (user: #{user})")
 
     # Convert target to charlist for :ssh
     host = String.to_charlist(target)
@@ -59,20 +59,26 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
     opts = if password, do: [{:password, String.to_charlist(password)} | opts], else: opts
 
-    case :ssh.connect(host, 22, opts) do
+    Logger.info("ErlangSSH: Starting :ssh.connect to #{target}")
+
+    case :ssh.connect(host, 22, opts, 5000) do
       {:ok, conn} ->
-        case :ssh_connection.session_channel(conn, :infinity) do
+        Logger.info("ErlangSSH: Connection established, opening channel...")
+        case :ssh_connection.session_channel(conn, 5000) do
           {:ok, channel} ->
+            Logger.info("ErlangSSH: Channel opened, starting shell...")
             :ssh_connection.ptty_alloc(conn, channel, [])
             :ssh_connection.shell(conn, channel)
             {:reply, :ok, %{state | conn: conn, channel: channel, target: target, history: [], history_size: 0}}
 
           {:error, reason} ->
+            Logger.error("Erlang SSH failed to open channel: #{inspect(reason)}")
             :ssh.close(conn)
             {:reply, {:error, reason}, state}
         end
 
       {:error, reason} ->
+        Logger.error("Erlang SSH failed to connect to #{target}: #{inspect(reason)}")
         {:reply, {:error, reason}, state}
     end
   end
