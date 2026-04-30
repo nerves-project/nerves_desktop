@@ -68,9 +68,9 @@ defmodule NervesDesktopWeb.Layouts do
       
     <!-- Main Content -->
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div class="flex-1 overflow-y-auto relative p-4 md:p-8">
+        <div class="flex-1 overflow-y-auto relative p-4 md:p-8 flex flex-col">
           <.flash_group flash={@flash} />
-          <div class="flex flex-col space-y-8 w-full">
+          <div class="flex-1 flex flex-col space-y-8 w-full">
             {render_slot(@inner_block)}
           </div>
         </div>

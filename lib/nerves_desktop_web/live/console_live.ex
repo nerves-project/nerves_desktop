@@ -317,7 +317,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
       </div>
 
       <div class="flex-1 flex flex-col min-h-0">
-        <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 h-[600px]">
+        <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 flex-1">
           <!-- Terminal Header -->
           <div class="bg-gray-800/50 px-6 py-4 flex items-center justify-between border-b border-gray-700/50">
             <div class="flex items-center gap-4">
