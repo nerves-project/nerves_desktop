@@ -27,18 +27,10 @@ host machine:
 - **Rust** and **Cargo** (via [rustup](https://rustup.rs/))
 - **Node.js** (for assets)
 
-### 2. System Dependencies (Required for `sunxi` tools)
-
-**macOS**:
+### 2. Dependencies
 
 ```bash
-brew install libusb dtc zlib pkg-config
-```
-
-**Ubuntu/Debian**:
-
-```bash
-sudo apt-get install libusb-1.0-0-dev libfdt-dev zlib1g-dev pkg-config
+cargo install tauri-cli --version '^2.0.0' --locked
 ```
 
 ## Getting Started

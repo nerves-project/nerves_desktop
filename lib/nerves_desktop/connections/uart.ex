@@ -80,7 +80,8 @@ defmodule NervesDesktop.Connections.UART do
   @impl true
   def handle_info({:circuits_uart, _port, data}, state) when is_binary(data) do
     data_size = byte_size(data)
-    {new_history, new_size} = 
+
+    {new_history, new_size} =
       if state.history_size + data_size > @history_limit do
         {[data], data_size}
       else
