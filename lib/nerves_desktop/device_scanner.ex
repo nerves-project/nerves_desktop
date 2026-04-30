@@ -85,16 +85,32 @@ defmodule NervesDesktop.DeviceScanner do
   end
 
   defp normalize_network_device(device) do
+    addresses =
+      (device[:addresses] || [])
+      |> Enum.sort()
+      |> Enum.map(fn addr ->
+        addr
+        |> Tuple.to_list()
+        |> Enum.join(".")
+      end)
+
+    display_ip =
+      case addresses do
+        [] -> device[:ip] || ""
+        [first | _rest] -> first
+      end
+
     target =
       if device[:hostname] && device[:hostname] != "" do
         device.hostname
       else
-        device.ip
+        List.first(addresses) || device[:ip] || ""
       end
 
     Map.merge(device, %{
       id: "network:#{target}",
       target: target,
+      ip: display_ip,
       type: :network,
       product: device[:product],
       version: device[:version],
@@ -114,7 +130,7 @@ defmodule NervesDesktop.DeviceScanner do
       chip_name = @chip_mappings[vendor_id] || "USB-Serial Device"
 
       # Use manufacturer if available, otherwise use our mapped chip name
-      display_name = 
+      display_name =
         cond do
           manufacturer != "" -> manufacturer
           true -> chip_name

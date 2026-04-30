@@ -145,7 +145,7 @@ defmodule NervesDesktopWeb.HomeLive do
                       <div>
                         <div class="font-bold text-gray-900 text-base">{device[:name]}</div>
                         <div
-                          class="text-[10px] text-gray-400 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
+                          class="text-xs text-gray-400 font-mono font-semibold flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5"
                           phx-click={
                             device[:hostname] &&
                               JS.dispatch("phx:copy", detail: %{text: device[:hostname]})
@@ -171,11 +171,13 @@ defmodule NervesDesktopWeb.HomeLive do
                         </span>
                       </div>
                       <div
-                        phx-click={JS.dispatch("phx:copy", detail: %{text: device[:target]})}
-                        class="inline-flex items-center gap-2 px-2 py-1 -ml-2 text-sm font-mono font-bold text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg cursor-pointer transition-all group/ip"
+                        phx-click={
+                          JS.dispatch("phx:copy", detail: %{text: device[:ip] || device[:target]})
+                        }
+                        class="inline-flex items-center gap-2 px-2 py-1 -ml-2 text-xs font-mono font-semibold text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg cursor-pointer transition-all group/ip"
                         title="Click to copy"
                       >
-                        {device[:target]}
+                        {device[:ip] || device[:target]}
                         <.icon
                           name="hero-clipboard"
                           class="w-4 h-4 text-gray-300 group-hover/ip:text-primary transition-colors"
