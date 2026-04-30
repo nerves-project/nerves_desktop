@@ -244,14 +244,16 @@ defmodule NervesDesktopWeb.ConsoleLive do
     socket = subscribe_to_target(socket, target)
 
     password = if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
-    
+
     case module.connect(pid, target, "root", password) do
       :ok ->
-        {:noreply, assign(socket, status: :connected, connection_pid: pid, connection_module: module)}
-        
+        socket = assign(socket, status: :connected, connection_pid: pid, connection_module: module)
+        {:noreply, socket}
+
       {:error, reason} ->
         ConnectionSupervisor.stop_child(pid)
-        {:noreply, put_flash(socket, :error, "Connection failed: #{inspect(reason)}")}
+        socket = put_flash(socket, :error, "Connection failed: #{format_error(reason)}")
+        {:noreply, socket}
     end
   end
 
@@ -268,15 +270,22 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     history = apply(module, :get_history, [pid])
 
-    {:noreply,
-     socket
-     |> assign(status: :connected, connection_pid: pid, connection_module: module)
-     |> push_print(history)}
+    socket =
+      socket
+      |> assign(status: :connected, connection_pid: pid, connection_module: module)
+      |> push_print(history)
+      
+    {:noreply, socket}
   end
 
   defp handle_connection_result({:error, reason}, socket, _module, _target) do
-    {:noreply, put_flash(socket, :error, "Failed to start connection: #{inspect(reason)}")}
+    socket = put_flash(socket, :error, "Failed to start connection: #{format_error(reason)}")
+    {:noreply, socket}
   end
+
+  defp format_error(reason) when is_binary(reason), do: reason
+  defp format_error(reason), do: inspect(reason)
+
 
   @impl true
   def render(assigns) do
