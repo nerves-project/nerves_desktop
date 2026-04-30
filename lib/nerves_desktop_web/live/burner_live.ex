@@ -133,6 +133,15 @@ defmodule NervesDesktopWeb.BurnerLive do
   end
 
   @impl true
+  def handle_event("open_url", %{"url" => url}, socket) do
+    if System.get_env("ELIXIRKIT_PUBSUB") do
+      ElixirKit.PubSub.broadcast("opener", url)
+    end
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("select_local_firmware", _params, socket) do
     ElixirKit.PubSub.broadcast("messages", "open_file_dialog")
     {:noreply, socket}

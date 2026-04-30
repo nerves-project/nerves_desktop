@@ -7,6 +7,15 @@ defmodule NervesDesktopWeb.ResourcesLive do
   end
 
   @impl true
+  def handle_event("open_url", %{"url" => url}, socket) do
+    if System.get_env("ELIXIRKIT_PUBSUB") do
+      ElixirKit.PubSub.broadcast("opener", url)
+    end
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:resources}>
@@ -36,32 +45,32 @@ defmodule NervesDesktopWeb.ResourcesLive do
                     </p>
                     <div class="flex items-center gap-4 text-sm mt-1">
                       <%= if item[:hex] do %>
-                        <a
-                          href={item.hex}
-                          target="_blank"
+                        <button
+                          phx-click="open_url"
+                          phx-value-url={item.hex}
                           class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
                         >
                           <.icon name="hero-cube" class="w-4 h-4" /> Hex
-                        </a>
+                        </button>
                       <% end %>
                       <%= if item[:github] do %>
                         <span :if={item[:hex]} class="text-gray-200">|</span>
-                        <a
-                          href={item.github}
-                          target="_blank"
+                        <button
+                          phx-click="open_url"
+                          phx-value-url={item.github}
                           class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
                         >
                           <.icon name="hero-code-bracket" class="w-4 h-4" /> GitHub
-                        </a>
+                        </button>
                       <% end %>
                       <%= if item[:url] do %>
-                        <a
-                          href={item.url}
-                          target="_blank"
+                        <button
+                          phx-click="open_url"
+                          phx-value-url={item.url}
                           class="text-primary font-bold hover:underline flex items-center gap-1.5"
                         >
                           Visit Site <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
-                        </a>
+                        </button>
                       <% end %>
                     </div>
                   </div>
@@ -84,17 +93,13 @@ defmodule NervesDesktopWeb.ResourcesLive do
           %{
             name: "Nerves Discord",
             url: "https://discord.gg/nerves-project",
-            desc: "Real-time chat with the Nerves community."
-          },
-          %{
-            name: "Elixir Slack (#nerves)",
-            url: "https://elixir-slack.herokuapp.com/",
-            desc: "Join the #nerves channel on the official Elixir Slack."
+            desc:
+              "Official Nerves community for real-time discussions, questions and announcements"
           },
           %{
             name: "Nerves Meetup EU",
-            url: "https://www.meetup.com/nerves-meetup-europe/",
-            desc: "Regular virtual meetups for the European Nerves community."
+            url: "https://nervesmeetup.eu/nerves-meetup-europe/",
+            desc: "Remote meetups via Zoom, every second Wednesday of the month at 19h CET"
           }
         ]
       },

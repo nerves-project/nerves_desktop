@@ -1,6 +1,7 @@
 use serde_json::json;
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_opener::OpenerExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,7 +20,11 @@ pub fn run() {
             // Handle messages from Elixir in a separate task to avoid blocking setup
             tauri::async_runtime::spawn(async move {
                 let pubsub_inner = pubsub_clone.clone();
-                pubsub_clone.subscribe("messages", move |msg| {
+                
+                // Subscription for generic messages
+                let app_handle_messages = app_handle_clone.clone();
+                let pubsub_messages = pubsub_inner.clone();
+                pubsub_inner.subscribe("messages", move |msg| {
                     if msg == b"ready" {
                         // Gather host info once Elixir is ready
                         let os_info = json!({
@@ -30,13 +35,13 @@ pub fn run() {
                         });
 
                         // Broadcast host info back to Elixir
-                        let _ = pubsub_inner.broadcast("host_info", os_info.to_string().as_bytes());
+                        let _ = pubsub_messages.broadcast("host_info", os_info.to_string().as_bytes());
 
                         // Create the main window
-                        create_window(&app_handle_clone);
+                        create_window(&app_handle_messages);
                     } else if msg == b"open_file_dialog" {
-                        let ps = pubsub_inner.clone();
-                        app_handle_clone
+                        let ps = pubsub_messages.clone();
+                        app_handle_messages
                             .dialog()
                             .file()
                             .add_filter("Firmware", &["fw"])
@@ -49,6 +54,13 @@ pub fn run() {
                     } else {
                         println!("[rust] received unknown message: {}", String::from_utf8_lossy(msg));
                     }
+                });
+
+                // Subscription for opener messages
+                let app_handle_opener = app_handle_clone.clone();
+                pubsub_clone.subscribe("opener", move |msg| {
+                    let url = String::from_utf8_lossy(msg);
+                    let _ = app_handle_opener.opener().open_url(url, None::<&str>);
                 });
             });
 

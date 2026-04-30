@@ -45,11 +45,7 @@ let Hooks = {
       this.el.addEventListener("click", (e) => {
         e.preventDefault()
         const url = this.el.getAttribute("href")
-        if (window.__TAURI__) {
-          window.__TAURI__.opener.open(url)
-        } else {
-          window.open(url, "_blank")
-        }
+        this.pushEvent("open_url", {url})
       })
     }
   },
