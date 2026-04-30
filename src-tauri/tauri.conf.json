@@ -2,8 +2,10 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "nerves_desktop",
   "version": "0.1.0",
-  "identifier": "com.nerves_desktop.app",
-  "build": {},
+  "identifier": "com.nerves-desktop.app",
+  "build": {
+    "beforeBuildCommand": "cd .. && MIX_ENV=prod mix do compile + assets.deploy + release --overwrite --path src-tauri/target/rel"
+  },
   "app": {
     "withGlobalTauri": true,
     "security": {
@@ -13,6 +15,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "target/rel": "rel"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

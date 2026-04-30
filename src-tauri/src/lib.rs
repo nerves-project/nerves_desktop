@@ -20,7 +20,7 @@ pub fn run() {
             // Handle messages from Elixir in a separate task to avoid blocking setup
             tauri::async_runtime::spawn(async move {
                 let pubsub_inner = pubsub_clone.clone();
-                
+
                 // Subscription for generic messages
                 let app_handle_messages = app_handle_clone.clone();
                 let pubsub_messages = pubsub_inner.clone();
@@ -40,7 +40,8 @@ pub fn run() {
                         });
 
                         // Broadcast host info back to Elixir
-                        let _ = pubsub_messages.broadcast("host_info", os_info.to_string().as_bytes());
+                        let _ =
+                            pubsub_messages.broadcast("host_info", os_info.to_string().as_bytes());
 
                         // Create the main window
                         create_window(&app_handle_messages, port);
@@ -57,7 +58,10 @@ pub fn run() {
                                 }
                             });
                     } else {
-                        println!("[rust] received unknown message: {}", String::from_utf8_lossy(msg));
+                        println!(
+                            "[rust] received unknown message: {}",
+                            String::from_utf8_lossy(msg)
+                        );
                     }
                 });
 
@@ -72,7 +76,9 @@ pub fn run() {
             // Start Elixir in background
             let app_handle_exit = app_handle.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let mut command = elixir_command();
+                let rel_dir = app_handle.path().resource_dir().unwrap().join("rel");
+                let mut command = elixir_command(&rel_dir);
+
                 command.env("ELIXIRKIT_PUBSUB", pubsub.url());
                 let status = command.status().expect("failed to start Elixir");
 
@@ -87,9 +93,7 @@ pub fn run() {
 
 fn create_window(app_handle: &tauri::AppHandle, port: u16) {
     let n = app_handle.webview_windows().len() + 1;
-    let url = tauri::WebviewUrl::External(
-        format!("http://127.0.0.1:{}", port).parse().unwrap(),
-    );
+    let url = tauri::WebviewUrl::External(format!("http://127.0.0.1:{}", port).parse().unwrap());
     tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
         .title("Nerves Desktop")
         .min_inner_size(800.0, 600.0)
@@ -98,8 +102,19 @@ fn create_window(app_handle: &tauri::AppHandle, port: u16) {
         .unwrap();
 }
 
-fn elixir_command() -> std::process::Command {
-    let mut command = elixirkit::mix("phx.server", &[]);
-    command.current_dir("..");
-    command
+fn elixir_command(rel_dir: &std::path::Path) -> std::process::Command {
+    if cfg!(debug_assertions) {
+        let mut command = elixirkit::mix("phx.server", &[]);
+        command.current_dir("..");
+        command
+    } else {
+        let mut command = elixirkit::release(rel_dir, "nerves_desktop");
+        command.env("PHX_SERVER", "true");
+        command.env("PHX_HOST", "127.0.0.1");
+        command.env(
+            "SECRET_KEY_BASE",
+            "qbrtWTv7bt5p5IfBKTLvCD63zIyK4tU694E5Hk8OtXnuwmiFGXLApIX+eNwNv0kT",
+        );
+        command
+    }
 }
