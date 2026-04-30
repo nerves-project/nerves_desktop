@@ -14,7 +14,7 @@ defmodule NervesDesktopWeb.Layouts do
 
   attr :active_tab, :atom,
     default: :devices,
-    values: [:devices, :console, :burner, :nerves_key, :fel, :settings]
+    values: [:devices, :console, :burner, :resources, :nerves_key, :fel, :settings]
 
   slot :inner_block, required: true
 
@@ -38,6 +38,9 @@ defmodule NervesDesktopWeb.Layouts do
           </UI.nav_link>
           <UI.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
             Firmware Burner
+          </UI.nav_link>
+          <UI.nav_link href={~p"/resources"} icon="hero-book-open" active={@active_tab == :resources}>
+            Nerves Resources
           </UI.nav_link>
         </nav>
 
