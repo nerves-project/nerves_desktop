@@ -69,7 +69,20 @@ defmodule NervesDesktopWeb.HomeLive do
               </div>
               <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left">
                 <div class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4">
-                  <.icon name="hero-cable" class="w-6 h-6 text-primary" />
+                  <svg
+                    class="text-primary size-"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z" /><path d="M17 21v-2" /><path d="M19 14V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V10" /><path d="M21 21v-2" /><path d="M3 5V3" /><path d="M4 10a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2z" /><path d="M7 5V3" />
+                  </svg>
                 </div>
                 <h4 class="font-bold text-gray-900 text-sm mb-2">Serial</h4>
                 <p class="text-xs text-gray-500 leading-normal">
