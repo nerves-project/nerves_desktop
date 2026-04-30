@@ -26,11 +26,27 @@ host machine:
 - **Elixir** (1.15+) and **Erlang/OTP**
 - **Rust** and **Cargo** (via [rustup](https://rustup.rs/))
 - **Node.js** (for assets)
+- **Tauri CLI** — `cargo tauri` is not part of stock Cargo. Install it with:
 
-### 2. Dependencies
+  ```bash
+  cargo install tauri-cli --version "^2.0" --locked
+  ```
+
+### 2. System Dependencies
+
+**macOS**:
 
 ```bash
-cargo install tauri-cli --version '^2.0.0' --locked
+brew install libusb dtc zlib pkg-config
+```
+
+**Ubuntu/Debian** (includes Tauri's WebKit/GTK requirements as well as the
+`sunxi` tooling deps):
+
+```bash
+sudo apt-get install \
+  libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
+  libusb-1.0-0-dev libfdt-dev zlib1g-dev pkg-config
 ```
 
 ## Getting Started
