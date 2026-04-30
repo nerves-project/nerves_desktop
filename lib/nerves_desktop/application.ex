@@ -26,7 +26,8 @@ defmodule NervesDesktop.Application do
       {Task,
        fn ->
          if pubsub do
-           ElixirKit.PubSub.broadcast("messages", "ready")
+           {:ok, {_ip, port}} = NervesDesktopWeb.Endpoint.server_info(:http)
+           ElixirKit.PubSub.broadcast("messages", "ready:#{port}")
          end
        end}
     ]
