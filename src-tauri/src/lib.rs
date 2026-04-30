@@ -25,7 +25,12 @@ pub fn run() {
                 let app_handle_messages = app_handle_clone.clone();
                 let pubsub_messages = pubsub_inner.clone();
                 pubsub_inner.subscribe("messages", move |msg| {
-                    if msg == b"ready" {
+                    if let Some(port_bytes) = msg.strip_prefix(b"ready:") {
+                        let port: u16 = std::str::from_utf8(port_bytes)
+                            .ok()
+                            .and_then(|s| s.parse().ok())
+                            .expect("invalid port in ready message");
+
                         // Gather host info once Elixir is ready
                         let os_info = json!({
                             "platform": tauri_plugin_os::platform(),
@@ -38,7 +43,7 @@ pub fn run() {
                         let _ = pubsub_messages.broadcast("host_info", os_info.to_string().as_bytes());
 
                         // Create the main window
-                        create_window(&app_handle_messages);
+                        create_window(&app_handle_messages, port);
                     } else if msg == b"open_file_dialog" {
                         let ps = pubsub_messages.clone();
                         app_handle_messages
@@ -80,9 +85,11 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-fn create_window(app_handle: &tauri::AppHandle) {
+fn create_window(app_handle: &tauri::AppHandle, port: u16) {
     let n = app_handle.webview_windows().len() + 1;
-    let url = tauri::WebviewUrl::External("http://127.0.0.1:4000".parse().unwrap());
+    let url = tauri::WebviewUrl::External(
+        format!("http://127.0.0.1:{}", port).parse().unwrap(),
+    );
     tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
         .title("Nerves Desktop")
         .min_inner_size(800.0, 600.0)
