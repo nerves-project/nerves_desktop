@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.nerves-desktop",
   "build": {
-    "beforeBuildCommand": "cd .. && MIX_ENV=prod mix do compile + assets.deploy + release --overwrite --path src-tauri/target/rel"
+    "beforeBuildCommand": "cd .. && mix do compile + assets.deploy + release --overwrite --path src-tauri/target/rel"
   },
   "app": {
     "withGlobalTauri": true,
