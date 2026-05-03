@@ -18,6 +18,31 @@ defmodule NervesDesktop.HostInfo do
     GenServer.call(__MODULE__, :get)
   end
 
+  @doc """
+  Returns a list of environment variables ensuring a UTF-8 locale is set,
+  derived from the OS locale provided by the Tauri frontend.
+  Suitable for passing to Port.open.
+  """
+  def utf8_env do
+    state = get()
+
+    # Tauri returns locale as "en-US", we want "en_US.UTF-8"
+    base_locale = Map.get(state, "locale")
+
+    lang =
+      if is_binary(base_locale) and base_locale != "" do
+        "#{String.replace(base_locale, "-", "_")}.UTF-8"
+      else
+        "en_US.UTF-8"
+      end
+
+    [
+      {~c"LANG", String.to_charlist(lang)},
+      {~c"LC_ALL", String.to_charlist(lang)},
+      {~c"TERM", ~c"xterm-256color"}
+    ]
+  end
+
   @impl true
   def init(_opts) do
     if System.get_env("ELIXIRKIT_PUBSUB") do

@@ -3,7 +3,8 @@ defmodule NervesDesktop.Connections.SystemSSH do
   require Logger
   @behaviour NervesDesktop.Connection
 
-  @history_limit 50_000 # 50KB
+  # 50KB
+  @history_limit 50_000
 
   @impl NervesDesktop.Connection
   def start_link(opts) do
@@ -63,11 +64,36 @@ defmodule NervesDesktop.Connections.SystemSSH do
     # 'script -q /dev/null' fakes a TTY
     # On macOS 'script' args are different than Linux. 
     # This approach is safer than string interpolation.
-    args = ["-q", "/dev/null", "ssh", "-tt", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", "-o", "ConnectTimeout=5", connection_str]
+    args = [
+      "-q",
+      "/dev/null",
+      "ssh",
+      "-tt",
+      "-o",
+      "StrictHostKeyChecking=no",
+      "-o",
+      "UserKnownHostsFile=/dev/null",
+      "-o",
+      "ConnectTimeout=5",
+      "-o",
+      "SendEnv=LANG",
+      "-o",
+      "SendEnv=LC_ALL",
+      connection_str
+    ]
+
+    env = NervesDesktop.HostInfo.utf8_env()
 
     Logger.info("Opening interactive System SSH connection: script #{Enum.join(args, " ")}")
 
-    port = Port.open({:spawn_executable, "/usr/bin/script"}, [:binary, :exit_status, :stderr_to_stdout, args: args])
+    port =
+      Port.open({:spawn_executable, "/usr/bin/script"}, [
+        :binary,
+        :exit_status,
+        :stderr_to_stdout,
+        args: args,
+        env: env
+      ])
 
     {:reply, :ok,
      %{
@@ -118,7 +144,8 @@ defmodule NervesDesktop.Connections.SystemSSH do
 
     # Efficient history buffering using iodata
     data_size = byte_size(data)
-    {new_history, new_size} = 
+
+    {new_history, new_size} =
       if state.history_size + data_size > @history_limit do
         {[data], data_size}
       else
