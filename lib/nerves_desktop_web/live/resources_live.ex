@@ -357,12 +357,6 @@ defmodule NervesDesktopWeb.ResourcesLive do
             desc: "Communicate with chips and displays over SPI."
           },
           %{
-            name: "nerves_leds",
-            github: "https://github.com/nerves-project/nerves_leds",
-            hex: "https://hex.pm/packages/nerves_leds",
-            desc: "Older library for driving status LEDs."
-          },
-          %{
             name: "boardid",
             github: "https://github.com/nerves-project/boardid",
             desc: "Read board-specific serial or identity information."
@@ -441,12 +435,12 @@ defmodule NervesDesktopWeb.ResourcesLive do
         links: [
           %{
             name: "Nerves Hub",
-            github: "https://github.com/nerves-hub/nerves_hub_web",
+            github: "https://github.com/nerves-hub",
             desc: "Over-the-air (OTA) firmware update server."
           },
           %{
             name: "fwup",
-            github: "https://github.com/fhunleth/fwup",
+            github: "https://github.com/fwup-home/fwup",
             desc: "Configurable embedded firmware update utility."
           },
           %{
