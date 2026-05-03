@@ -6,6 +6,12 @@ use tauri_plugin_opener::OpenerExt;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            let _ = app
+                .get_webview_window("main")
+                .expect("no main window")
+                .set_focus();
+        }))
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -92,9 +98,8 @@ pub fn run() {
 }
 
 fn create_window(app_handle: &tauri::AppHandle, port: u16) {
-    let n = app_handle.webview_windows().len() + 1;
     let url = tauri::WebviewUrl::External(format!("http://127.0.0.1:{}", port).parse().unwrap());
-    tauri::WebviewWindowBuilder::new(app_handle, format!("window-{}", n), url)
+    tauri::WebviewWindowBuilder::new(app_handle, "main", url)
         .title("Nerves Desktop")
         .min_inner_size(800.0, 600.0)
         .maximized(true)
