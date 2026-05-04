@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@tauri-apps/plugin-dialog": "^2.7.0",
-    "@tauri-apps/plugin-os": "^2.3.2"
-  }
-}

@@ -24,8 +24,8 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/nerves_desktop"
 import topbar from "../vendor/topbar"
-import { Terminal } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
+import { Terminal } from '../vendor/xterm/xterm.mjs'
+import { FitAddon } from '../vendor/xterm/addon-fit.mjs'
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
