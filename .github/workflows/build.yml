@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm'
@@ -65,4 +65,3 @@ jobs:
           releaseBody: 'Automatically generated nightly build from the latest main branch.'
           releaseDraft: false
           prerelease: true
-          allowOverwrite: true
