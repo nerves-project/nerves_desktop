@@ -43,6 +43,12 @@ If you download and install the software, please note the following:
 - **Resources**: A page of quick links to a wide range of Nerves resources,
   repos, hex packages and more
 
+## Screenshots
+
+![Devices list page](docs/devices_list.png)
+![Device console page](docs/console.png)
+![Nerves burner page](docs/nerves_burner.png)
+
 ## Prerequisites
 
 To run this application from source, you need the following installed on your
@@ -98,3 +104,29 @@ simultaneously:
 ```bash
 cargo tauri dev
 ```
+
+## Future Work
+
+Currently, this is an experiment to see if this is a useful resource for the
+Nerves community. Your feedback is incredibly important to gauge that metric. We
+have planned the following features for future developments (in no particular
+order):
+
+- Code signing
+- Automatic updates
+- Integrated Nerves MCP server (tools for connecting to Nerves devices, reading
+  logs, etc)
+- NervesKey provisioning
+- Nerves Starter Kit integration
+- Flashing second-stage bootloader (rpiboot/sunxi-fel)
+
+If you have any feature requests, please open an issue to open discussion on the
+topic
+
+## Related Projects
+
+This project is a thin GUI wrapper over several other Nerves projects. Notably:
+
+- [Nerves Discovery](https://github.com/nerves-networking/nerves_discovery)
+- [Nerves Burner](https://github.com/nerves-project/nerves_burner)
+- [Fwup](https://github.com/fwup-home/fwup)
