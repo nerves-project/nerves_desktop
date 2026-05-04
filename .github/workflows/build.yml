@@ -39,11 +39,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xdg-utils
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
       - name: Setup Beam
         uses: erlef/setup-beam@v1
         with:
@@ -55,10 +50,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Elixir & Node Dependencies
+      - name: Install Elixir Dependencies
         run: |
           mix deps.get
-          npm install --prefix assets
 
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0.6
