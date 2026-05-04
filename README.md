@@ -4,6 +4,23 @@ A native desktop application for discovering, managing, and provisioning Nerves
 devices. Built with Phoenix LiveView and
 [ElixirKit](https://github.com/livebook-dev/elixirkit).
 
+## Features
+
+- **Device Discovery**: Automatically find Nerves devices on your local network
+  via mDNS.
+- **Interactive Console**: Built-in iex console over UART or SSH powered by
+  `xterm.js` for direct device interaction.
+- **Firmware Burner**: Download and flash Nerves firmware images to SD
+  cards/storage devices.
+- **Resources**: A page of quick links to a wide range of Nerves resources,
+  repos, hex packages and more
+
+## Screenshots
+
+![Devices list page](docs/devices_list.png)
+![Device console page](docs/console.png)
+![Nerves burner page](docs/nerves_burner.png)
+
 ## Installation
 
 This application is in the very early stages of development. Nightly builds can
@@ -32,24 +49,7 @@ If you download and install the software, please note the following:
 - There may be bugs with installation or use of the software. If you run into
   any, please file issues
 
-## Features
-
-- **Device Discovery**: Automatically find Nerves devices on your local network
-  via mDNS.
-- **Interactive Console**: Built-in iex console over UART or SSH powered by
-  `xterm.js` for direct device interaction.
-- **Firmware Burner**: Download and flash Nerves firmware images to SD
-  cards/storage devices.
-- **Resources**: A page of quick links to a wide range of Nerves resources,
-  repos, hex packages and more
-
-## Screenshots
-
-![Devices list page](docs/devices_list.png)
-![Device console page](docs/console.png)
-![Nerves burner page](docs/nerves_burner.png)
-
-## Prerequisites
+## Build from Source
 
 To run this application from source, you need the following installed on your
 host machine:
