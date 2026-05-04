@@ -25,60 +25,59 @@ defmodule NervesDesktopWeb.ResourcesLive do
         subtitle="Explore documentation, packages, and community resources"
       />
 
-      <div class="grid grid-cols-3 gap-5">
-        <%= for group <- @resource_groups do %>
-          <div class="break-inside-avoid bg-white rounded-[2rem] border border-gray-100 p-8 flex flex-col overflow-hidden relative group/card">
-            <div class="relative z-10 flex flex-col h-full">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="p-3 bg-gray-50 rounded-xl text-primary group-hover/card:bg-primary group-hover/card:text-white transition-colors duration-300">
-                  <.icon name={group.icon} class="size-6" />
-                </div>
-                <h3 class="text-xl font-extrabold text-gray-900 tracking-tight">{group.title}</h3>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div
+          :for={group <- @resource_groups}
+          class="break-inside-avoid bg-white rounded-[2rem] border border-gray-100 p-8 flex flex-col overflow-hidden relative group/card"
+        >
+          <div class="relative z-10 flex flex-col h-full">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="p-3 bg-gray-50 rounded-xl text-primary group-hover/card:bg-primary group-hover/card:text-white transition-colors duration-300">
+                <.icon name={group.icon} class="size-6" />
               </div>
+              <h3 class="text-xl font-extrabold text-gray-900 tracking-tight">{group.title}</h3>
+            </div>
 
-              <div class="space-y-6 flex-1">
-                <%= for item <- group.links do %>
-                  <div class="flex flex-col gap-1.5">
-                    <div class="text-base font-bold text-gray-800">{item.name}</div>
-                    <p :if={item[:desc]} class="text-sm text-gray-500 leading-relaxed">
-                      {item.desc}
-                    </p>
-                    <div class="flex items-center gap-4 text-sm mt-1">
-                      <%= if item[:hex] do %>
-                        <button
-                          phx-click="open_url"
-                          phx-value-url={item.hex}
-                          class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
-                        >
-                          <.icon name="hero-cube" class="w-4 h-4" /> Hex
-                        </button>
-                      <% end %>
-                      <%= if item[:github] do %>
-                        <span :if={item[:hex]} class="text-gray-200">|</span>
-                        <button
-                          phx-click="open_url"
-                          phx-value-url={item.github}
-                          class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
-                        >
-                          <.icon name="hero-code-bracket" class="w-4 h-4" /> GitHub
-                        </button>
-                      <% end %>
-                      <%= if item[:url] do %>
-                        <button
-                          phx-click="open_url"
-                          phx-value-url={item.url}
-                          class="text-primary font-bold hover:underline flex items-center gap-1.5"
-                        >
-                          Visit Site <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
-                        </button>
-                      <% end %>
-                    </div>
-                  </div>
-                <% end %>
+            <div class="space-y-6 flex-1">
+              <div :for={item <- group.links} class="flex flex-col gap-1.5">
+                <div class="text-base font-bold text-gray-800">{item.name}</div>
+                <p :if={item[:desc]} class="text-sm text-gray-500 leading-relaxed">
+                  {item.desc}
+                </p>
+                <div class="flex items-center gap-4 text-sm mt-1">
+                  <%= if item[:hex] do %>
+                    <button
+                      phx-click="open_url"
+                      phx-value-url={item.hex}
+                      class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
+                    >
+                      <.icon name="hero-cube" class="w-4 h-4" /> Hex
+                    </button>
+                  <% end %>
+                  <%= if item[:github] do %>
+                    <span :if={item[:hex]} class="text-gray-200">|</span>
+                    <button
+                      phx-click="open_url"
+                      phx-value-url={item.github}
+                      class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
+                    >
+                      <.icon name="hero-code-bracket" class="w-4 h-4" /> GitHub
+                    </button>
+                  <% end %>
+                  <%= if item[:url] do %>
+                    <button
+                      phx-click="open_url"
+                      phx-value-url={item.url}
+                      class="text-primary font-bold hover:underline flex items-center gap-1.5"
+                    >
+                      Visit Site <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
+                    </button>
+                  <% end %>
+                </div>
               </div>
             </div>
           </div>
-        <% end %>
+        </div>
       </div>
     </Layouts.app>
     """

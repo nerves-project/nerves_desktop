@@ -34,20 +34,26 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_info(:scan_devices, socket) do
+    fwup_installed? = not is_nil(System.find_executable("fwup"))
+
     devices =
-      Fwup.get_devices()
-      |> Enum.reject(&(&1 == [""]))
-      |> Enum.map(fn
-        [path, size | rest] ->
-          description = if rest == [], do: path, else: Enum.join(rest, ", ")
-          %{path: path, size: String.to_integer(size), description: description}
+      if fwup_installed? do
+        Fwup.get_devices()
+        |> Enum.reject(&(&1 == [""]))
+        |> Enum.map(fn
+          [path, size | rest] ->
+            description = if rest == [], do: path, else: Enum.join(rest, ", ")
+            %{path: path, size: String.to_integer(size), description: description}
 
-        _ ->
-          nil
-      end)
-      |> Enum.reject(&is_nil/1)
+          _ ->
+            nil
+        end)
+        |> Enum.reject(&is_nil/1)
+      else
+        []
+      end
 
-    {:noreply, assign(socket, devices: devices)}
+    {:noreply, assign(socket, devices: devices, fwup_installed?: fwup_installed?)}
   end
 
   # Handle file dialog result from Rust
@@ -254,7 +260,7 @@ defmodule NervesDesktopWeb.BurnerLive do
                 tool is required to flash Nerves firmware but was not found on your system path.
               </p>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="bg-white/50 p-4 rounded-xl border border-red-200">
                   <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">macOS</p>
                   <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
@@ -267,7 +273,17 @@ defmodule NervesDesktopWeb.BurnerLive do
                     sudo apt install fwup
                   </code>
                 </div>
+                <div class="bg-white/50 p-4 rounded-xl border border-red-200">
+                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">Windows</p>
+                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
+                    choco install fwup
+                  </code>
+                </div>
               </div>
+
+              <p class="text-sm text-red-800/80 mb-4">
+                Alternative methods (downloading pre-built executables, building from source, etc.) are also available on GitHub.
+              </p>
 
               <a
                 href="https://github.com/fwup-home/fwup"
@@ -502,7 +518,7 @@ defmodule NervesDesktopWeb.BurnerLive do
               <button
                 phx-click="burn"
                 disabled={
-                  is_nil(@selected_image) or is_nil(@selected_device) or
+                  !@fwup_installed? or is_nil(@selected_image) or is_nil(@selected_device) or
                     @status in [:downloading, :burning]
                 }
                 class="btn btn-primary w-full h-16 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none transition-all hover:scale-[1.01] active:scale-[0.99]"
