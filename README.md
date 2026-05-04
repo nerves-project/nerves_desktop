@@ -58,7 +58,7 @@ host machine:
 
 - Elixir 1.19 and Erlang/OTP 28
 - Rust** and Cargo (via [rustup](https://rustup.rs/))
-- Node.js** (for assets)
+- Node.js (for assets)
 - Tauri CLI*— `cargo tauri` is not part of stock Cargo. Install it with:
 
   ```bash
