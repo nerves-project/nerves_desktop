@@ -1,16 +1,56 @@
 name: "Build Nightly Release"
 
 on:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  check_changes:
+    name: "Check for changes"
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check and Prep
+        id: check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch all tags to find 'nightly'
+          git fetch --tags || true
+          
+          # Get the SHA of the current HEAD
+          CURRENT_SHA=$(git rev-parse HEAD)
+          echo "Current SHA: $CURRENT_SHA"
+          
+          # Get the SHA of the 'nightly' tag if it exists
+          NIGHTLY_SHA=$(git rev-parse nightly 2>/dev/null || echo "")
+          echo "Nightly SHA: $NIGHTLY_SHA"
+          
+          if [ "$CURRENT_SHA" = "$NIGHTLY_SHA" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "No changes since last nightly build."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected or manual run. Preparing nightly release."
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            # Delete old release and tag if they exist to ensure a fresh nightly build at the new SHA
+            gh release delete nightly --yes --cleanup-tag || true
+          fi
+
   app:
     name: "Nerves Desktop (${{ matrix.gui_target }})"
+    needs: check_changes
+    if: needs.check_changes.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -137,11 +177,9 @@ jobs:
           # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          tagName: nightly
+          releaseName: "Nightly Release"
+          releaseBody: "Automated nightly build from main branch."
+          releaseDraft: false
+          prerelease: true
           args: --target ${{ matrix.gui_target }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: nerves_desktop-${{ matrix.gui_target }}
-          path: src-tauri/target/${{ matrix.gui_target }}/release/bundle/
-          if-no-files-found: error
