@@ -9,6 +9,7 @@ defmodule NervesDesktop.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      releases: releases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
@@ -88,6 +89,15 @@ defmodule NervesDesktop.MixProject do
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+    ]
+  end
+
+  defp releases do
+    [
+      nerves_desktop: [
+        steps: [:assemble, &ElixirKit.Release.codesign/1],
+        entitlements: "#{__DIR__}/src-tauri/App.entitlements"
+      ]
     ]
   end
 end

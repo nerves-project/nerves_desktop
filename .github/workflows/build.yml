@@ -1,67 +1,147 @@
-name: Build Nightly Release
+name: "Build Nightly Release"
 
 on:
   push:
     branches:
       - main
 
-env:
-  otp-version: '28.5'
-  elixir-version: '1.19.5'
+permissions:
+  contents: read
 
 jobs:
-  build:
-    permissions:
-      contents: write
+  app:
+    name: "Nerves Desktop (${{ matrix.gui_target }})"
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-26
-            target: "aarch64-apple-darwin"
-          - platform: macos-26-intel
-            target: "x86_64-apple-darwin"
-          - platform: ubuntu-24.04-arm
-            target: "aarch64-unknown-linux-gnu"
-          - platform: ubuntu-24.04
-            target: "x86_64-unknown-linux-gnu"
-          - platform: windows-2025
-            target: "x86_64-pc-windows-msvc"
-            
+          - platform: macos-15
+            gui_target: "aarch64-apple-darwin"
+          - platform: macos-15-intel
+            gui_target: "x86_64-apple-darwin"
+          - platform: windows-2022
+            gui_target: "x86_64-pc-windows-msvc"
+          - platform: ubuntu-22.04-arm
+            gui_target: "aarch64-unknown-linux-gnu"
+          - platform: ubuntu-22.04
+            gui_target: "x86_64-unknown-linux-gnu"
     runs-on: ${{ matrix.platform }}
-    
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-24.04' || matrix.platform == 'ubuntu-24.04-arm'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xdg-utils
-
-      - name: Setup Beam
-        uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ env.otp-version }}
-          elixir-version: ${{ env.elixir-version }}
+          otp-version: "28.5"
+          elixir-version: "1.19.5"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.gui_target }}
 
-      - name: Install Elixir Dependencies
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-directories: |
+            ~/.cargo/bin
+          key: ${{ matrix.gui_target }}
+
+      - name: Mix deps cache
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
         run: |
-          mix deps.get
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
 
-      - name: Build and Release
+      - name: Install Tauri CLI
+        shell: bash
+        run: |
+          if ! command -v cargo-tauri &> /dev/null; then
+            cargo install tauri-cli --version "=2.8.0" --locked
+          else
+            echo "cargo-tauri already installed: $(cargo-tauri --version)"
+          fi
+
+      - name: Install Mix dependencies
+        shell: bash
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+          mix assets.setup
+
+      # - name: Install trusted-signing-cli (Windows)
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     cargo install trusted-signing-cli@0.9.0
+
+      - name: Install Apple certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: secret
+        run: |
+          # Only run if certificate is provided
+          if [ -n "$P12_BASE64" ]; then
+            # Create variables
+            CERTIFICATE_PATH=$RUNNER_TEMP/apple_certificate.p12
+            KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+            echo -n "$P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+            # Create temporary keychain
+            security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+            security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+            # Import certificate to keychain
+            security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+            security list-keychain -d user -s $KEYCHAIN_PATH
+          fi
+
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0.6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MIX_ENV: prod
+          # macOS codesigning/notarization
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+          # Windows codesigning
+          # AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          # AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          # AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          # AZURE_TRUSTED_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          # AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATE_PROFILE_NAME }}
+          # Tauri updater
+          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: nightly
-          releaseName: 'Nightly Build'
-          releaseBody: 'Automatically generated nightly build from the latest main branch.'
-          releaseDraft: false
-          prerelease: true
+          args: --target ${{ matrix.gui_target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nerves_desktop-${{ matrix.gui_target }}
+          path: src-tauri/target/${{ matrix.gui_target }}/release/bundle/
+          if-no-files-found: error
