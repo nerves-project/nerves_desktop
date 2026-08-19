@@ -3,27 +3,18 @@ defmodule NervesDesktop.Connections.SystemSSH do
   require Logger
   @behaviour NervesDesktop.Connection
 
-  # 50KB
-  @history_limit 50_000
+  alias NervesDesktop.Connection
+  alias NervesDesktop.Connection.Buffer
 
   @impl NervesDesktop.Connection
   def start_link(opts) do
     target = Keyword.fetch!(opts, :target)
-    GenServer.start_link(__MODULE__, opts, name: via_tuple(target))
-  end
-
-  defp via_tuple(target) do
-    {:via, Registry, {NervesDesktop.ConnectionRegistry, target}}
+    GenServer.start_link(__MODULE__, opts, name: Connection.via_tuple(target))
   end
 
   @impl NervesDesktop.Connection
   def connect(pid, target, user, password) do
     GenServer.call(pid, {:connect, target, user, password})
-  end
-
-  @impl NervesDesktop.Connection
-  def disconnect(pid) do
-    GenServer.call(pid, :disconnect)
   end
 
   @impl NervesDesktop.Connection
@@ -39,8 +30,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
   @impl true
   def init(opts) do
     target = Keyword.fetch!(opts, :target)
-    # Store module name in Registry metadata
-    Registry.update_value(NervesDesktop.ConnectionRegistry, target, fn _ -> __MODULE__ end)
+    Connection.register_backend(target, __MODULE__)
 
     {:ok,
      %{
@@ -49,8 +39,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
        port: nil,
        password: nil,
        password_sent: false,
-       history: [],
-       history_size: 0
+       buffer: Buffer.new()
      }}
   end
 
@@ -103,20 +92,13 @@ defmodule NervesDesktop.Connections.SystemSSH do
          port: port,
          password: password,
          password_sent: false,
-         history: [],
-         history_size: 0
+         buffer: Buffer.new()
      }}
   end
 
   @impl true
-  def handle_call(:disconnect, _from, state) do
-    if state.port, do: Port.close(state.port)
-    {:stop, :normal, :ok, state}
-  end
-
-  @impl true
   def handle_call(:get_history, _from, state) do
-    {:reply, IO.iodata_to_binary(Enum.reverse(state.history)), state}
+    {:reply, Buffer.to_binary(state.buffer), state}
   end
 
   @impl true
@@ -132,7 +114,6 @@ defmodule NervesDesktop.Connections.SystemSSH do
 
   @impl true
   def handle_info({port, {:data, data}}, %{port: port} = state) do
-    # Check for password prompt using regex
     state =
       if state.password && !state.password_sent && data =~ ~r/[Pp]assword:/ do
         Logger.info("Detected password prompt, sending password...")
@@ -142,19 +123,9 @@ defmodule NervesDesktop.Connections.SystemSSH do
         state
       end
 
-    # Efficient history buffering using iodata
-    data_size = byte_size(data)
+    Connection.broadcast_output(state.target, data)
 
-    {new_history, new_size} =
-      if state.history_size + data_size > @history_limit do
-        {[data], data_size}
-      else
-        {[data | state.history], state.history_size + data_size}
-      end
-
-    broadcast_output(state.target, data)
-
-    {:noreply, %{state | history: new_history, history_size: new_size}}
+    {:noreply, %{state | buffer: Buffer.push(state.buffer, data)}}
   end
 
   @impl true
@@ -167,25 +138,9 @@ defmodule NervesDesktop.Connections.SystemSSH do
   @impl true
   def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
     Logger.info("System SSH Port closed with status: #{status}")
-    broadcast_output(state.target, "\r\n\x1B[1;31m[SSH Session Closed]\x1B[0m\r\n")
-    broadcast_closed(state.target)
+    Connection.broadcast_output(state.target, "\r\n\x1B[1;31m[SSH Session Closed]\x1B[0m\r\n")
+    Connection.broadcast_closed(state.target)
 
     {:stop, :normal, state}
-  end
-
-  defp broadcast_output(target, data) do
-    Phoenix.PubSub.broadcast(
-      NervesDesktop.PubSub,
-      "connection_output:#{target}",
-      {:connection_output, target, data}
-    )
-  end
-
-  defp broadcast_closed(target) do
-    Phoenix.PubSub.broadcast(
-      NervesDesktop.PubSub,
-      "connection_output:#{target}",
-      {:connection_closed, target}
-    )
   end
 end
