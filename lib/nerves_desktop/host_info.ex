@@ -23,11 +23,13 @@ defmodule NervesDesktop.HostInfo do
   derived from the OS locale provided by the Tauri frontend.
   Suitable for passing to Port.open.
   """
-  def utf8_env do
-    state = get()
+  def utf8_env, do: locale_env(get())
 
-    # Tauri returns locale as "en-US", we want "en_US.UTF-8"
-    base_locale = Map.get(state, "locale")
+  @doc """
+  Builds a UTF-8 locale environment from host info. Tauri reports "en-US"; ports need "en_US.UTF-8".
+  """
+  def locale_env(info) when is_map(info) do
+    base_locale = Map.get(info, "locale")
 
     lang =
       if is_binary(base_locale) and base_locale != "" do
@@ -58,7 +60,7 @@ defmodule NervesDesktop.HostInfo do
   end
 
   @impl true
-  def handle_info(payload, _state) do
+  def handle_info(payload, state) when is_binary(payload) do
     case Jason.decode(payload) do
       {:ok, info} ->
         Logger.info("[HostInfo] Received system info: #{inspect(info)}")
@@ -66,7 +68,10 @@ defmodule NervesDesktop.HostInfo do
 
       {:error, reason} ->
         Logger.error("[HostInfo] Failed to decode host info: #{inspect(reason)}")
-        {:noreply, %{}}
+        {:noreply, state}
     end
   end
+
+  @impl true
+  def handle_info(_payload, state), do: {:noreply, state}
 end

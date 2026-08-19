@@ -26,18 +26,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
-  def terminate(_reason, socket) do
-    if socket.assigns.subscribed_target do
-      Phoenix.PubSub.unsubscribe(
-        NervesDesktop.PubSub,
-        "connection_output:#{socket.assigns.subscribed_target}"
-      )
-    end
-
-    :ok
-  end
-
-  @impl true
   def handle_params(params, _url, socket) do
     target = params["target"] || params["ip"]
     name = params["name"]
@@ -64,7 +52,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(selected_target: target)
         |> assign(selected_name: name)
         |> check_existing_connection(target)
-        |> maybe_auto_connect()
       else
         socket
       end
@@ -80,16 +67,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
     end
   end
 
-  defp maybe_auto_connect(%{assigns: %{status: :disconnected}} = socket) do
-    if connected?(socket) do
-      Process.send_after(self(), :auto_connect, 500)
-    end
-
-    socket
-  end
-
-  defp maybe_auto_connect(socket), do: socket
-
   defp check_existing_connection(socket, target) do
     case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
       [{pid, module}] when is_atom(module) ->
@@ -102,7 +79,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(connection_pid: pid)
         |> assign(connection_module: module)
         |> assign(status: :connected)
-        |> push_print(history)
+        |> push_history(history)
 
       _ ->
         socket
@@ -128,16 +105,15 @@ defmodule NervesDesktopWeb.ConsoleLive do
     end
   end
 
+  defp push_history(socket, history) do
+    socket
+    |> push_event("clear", %{})
+    |> push_print(history)
+  end
+
   defp push_print(socket, data) do
     b64_data = Base.encode64(data)
     push_event(socket, "print", %{data: b64_data})
-  end
-
-  @impl true
-  def handle_info(:auto_connect, socket) do
-    socket.assigns.selected_target
-    |> validate_target()
-    |> perform_connection(socket)
   end
 
   @impl true
@@ -294,7 +270,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
     socket =
       socket
       |> assign(status: :connected, connection_pid: pid, connection_module: module)
-      |> push_print(history)
+      |> push_history(history)
 
     {:noreply, socket}
   end

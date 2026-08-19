@@ -2,17 +2,10 @@ defmodule NervesDesktop.DeviceScanner do
   use GenServer
   require Logger
 
+  alias NervesDesktop.Device
+
   @topic "discovery"
   @scan_interval :timer.seconds(10)
-
-  # Common USB-Serial Chip Mappings (FTDI, CP210x, CH34x)
-  @chip_mappings %{
-    0x0403 => "FTDI USB-Serial",
-    0x10C4 => "CP210x USB-Serial",
-    0x1A86 => "CH34x USB-Serial"
-  }
-
-  @vids Map.keys(@chip_mappings)
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -75,82 +68,13 @@ defmodule NervesDesktop.DeviceScanner do
 
   defp start_scan(state) do
     Task.Supervisor.async_nolink(NervesDesktop.TaskSupervisor, fn ->
-      network_devices = NervesDiscovery.discover() |> Enum.map(&normalize_network_device/1)
-      uart_devices = Circuits.UART.enumerate() |> normalize_uart_devices()
+      network_devices = NervesDiscovery.discover() |> Enum.map(&Device.from_network/1)
+      uart_devices = Circuits.UART.enumerate() |> Device.from_uart()
 
       network_devices ++ uart_devices
     end)
 
     %{state | scanning: true, timer: nil}
-  end
-
-  defp normalize_network_device(device) do
-    addresses =
-      (device[:addresses] || [])
-      |> Enum.sort()
-      |> Enum.map(fn addr ->
-        addr
-        |> Tuple.to_list()
-        |> Enum.join(".")
-      end)
-
-    display_ip =
-      case addresses do
-        [] -> device[:ip] || ""
-        [first | _rest] -> first
-      end
-
-    target =
-      if device[:hostname] && device[:hostname] != "" do
-        device.hostname
-      else
-        List.first(addresses) || device[:ip] || ""
-      end
-
-    Map.merge(device, %{
-      id: "network:#{target}",
-      target: target,
-      ip: display_ip,
-      type: :network,
-      product: device[:product],
-      version: device[:version],
-      platform: device[:platform]
-    })
-  end
-
-  defp normalize_uart_devices(enumerate_output) do
-    enumerate_output
-    |> Enum.filter(fn {_port, info} ->
-      info[:vendor_id] in @vids
-    end)
-    |> Enum.map(fn {port, info} ->
-      vendor_id = info[:vendor_id]
-      manufacturer = info[:manufacturer] || ""
-
-      chip_name = @chip_mappings[vendor_id] || "USB-Serial Device"
-
-      # Use manufacturer if available, otherwise use our mapped chip name
-      display_name =
-        cond do
-          manufacturer != "" -> manufacturer
-          true -> chip_name
-        end
-
-      %{
-        id: "uart:#{port}",
-        name: display_name,
-        hostname: port,
-        target: port,
-        type: :uart,
-        ip: nil,
-        product: info[:description] || chip_name,
-        version: nil,
-        platform: nil,
-        manufacturer: info[:manufacturer],
-        vendor_id: info[:vendor_id],
-        product_id: info[:product_id]
-      }
-    end)
   end
 
   defp schedule_scan(state, ms \\ @scan_interval) do
