@@ -1,0 +1,58 @@
+defmodule NervesDesktop.Firmware.Catalog do
+  @moduledoc """
+  Matches a discovered device against the firmware images this app knows how to
+  download.
+
+  A Nerves image advertises `nerves_fw_product`, which is the name of the
+  project it was built from, and that is the basename of the catalog entry's
+  GitHub repo. That holds for every image in the catalog, so the repo is the
+  join key.
+  """
+
+  alias NervesBurner.FirmwareImages
+
+  @type config :: map()
+
+  @doc """
+  Finds the catalog image a device is running.
+
+  Only network devices can be matched: an over-the-air update needs an SSH
+  channel, and a target shipped only as a disk image has no `.fw` to send.
+  """
+  @spec match(map()) :: {:ok, binary(), config()} | :no_match
+  def match(%{type: :network, product: product, platform: platform})
+      when is_binary(product) and is_binary(platform) do
+    Enum.find_value(FirmwareImages.list(), :no_match, fn {name, config} ->
+      if Path.basename(config.repo) == product and updatable_target?(config, platform) do
+        {:ok, name, config}
+      end
+    end)
+  end
+
+  def match(_device), do: :no_match
+
+  @doc """
+  Whether this device could be updated from the catalog at all.
+  """
+  @spec updatable?(map()) :: boolean()
+  def updatable?(device), do: match(device) != :no_match
+
+  @doc """
+  The name of the `.fw` release asset for a target.
+  """
+  @spec asset_name(config(), binary()) :: binary()
+  def asset_name(config, target), do: config.fw_asset_pattern.(target)
+
+  defp updatable_target?(config, target) do
+    target in config.targets and not image_only?(config, target)
+  end
+
+  # Some targets ship a disk image rather than a firmware archive, so there is
+  # nothing to stream to a running device.
+  defp image_only?(config, target) do
+    case get_in(config, [:overrides, target]) do
+      %{use_image_asset: true} -> true
+      _ -> false
+    end
+  end
+end
