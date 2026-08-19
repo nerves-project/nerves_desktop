@@ -10,7 +10,18 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
     @impl true
     def upload(_target, path, opts) do
       opts[:on_progress].(50)
-      send(:update_test, {:uploaded, path, self()})
+
+      # The test process may already be gone when a session is cancelled during
+      # cleanup; sending to a name nobody holds would crash the task and bury
+      # real failures in the log.
+      case Process.whereis(:update_test) do
+        nil -> {:error, :test_over}
+        pid -> await_reply(pid, path)
+      end
+    end
+
+    defp await_reply(pid, path) do
+      send(pid, {:uploaded, path, self()})
 
       receive do
         {:reply, result} -> result
