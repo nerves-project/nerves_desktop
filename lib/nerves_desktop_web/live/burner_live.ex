@@ -7,7 +7,6 @@ defmodule NervesDesktopWeb.BurnerLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      # Initial scan
       send(self(), :scan_devices)
       # Subscribe to file dialog result from Rust
       ElixirKit.PubSub.subscribe("file_dialog_result")
@@ -23,11 +22,9 @@ defmodule NervesDesktopWeb.BurnerLive do
      |> assign(status: :idle)
      |> assign(message: "")
      |> assign(progress: 0)
-     # WiFi Provisioning
      |> assign(wifi_ssid: "")
      |> assign(wifi_psk: "")
      |> assign(wifi_form: to_form(%{"ssid" => "", "psk" => ""}, as: :wifi))
-     # System Status
      |> assign(fwup_installed?: not is_nil(System.find_executable("fwup")))
      |> assign(host_info: NervesDesktop.HostInfo.get())}
   end
@@ -56,7 +53,6 @@ defmodule NervesDesktopWeb.BurnerLive do
     {:noreply, assign(socket, devices: devices, fwup_installed?: fwup_installed?)}
   end
 
-  # Handle file dialog result from Rust
   @impl true
   def handle_info(path, socket) when is_binary(path) do
     Logger.info("[Burner] Local firmware selected: #{path}")
@@ -67,7 +63,6 @@ defmodule NervesDesktopWeb.BurnerLive do
      |> assign(selected_target_arch: nil)}
   end
 
-  # Handle progress from Fwup.Stream
   @impl true
   def handle_info({:fwup, {:progress, p}}, socket) do
     total_progress =
@@ -97,10 +92,8 @@ defmodule NervesDesktopWeb.BurnerLive do
     {:noreply, socket}
   end
 
-  # Handle download progress from our custom Req downloader
   @impl true
   def handle_info({:download_progress, percent}, socket) do
-    # Download is the first 50% of the bar
     total_progress = div(percent, 2)
     {:noreply, assign(socket, progress: total_progress)}
   end
