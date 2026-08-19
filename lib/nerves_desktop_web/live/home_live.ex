@@ -41,14 +41,18 @@ defmodule NervesDesktopWeb.HomeLive do
       </UI.page_header>
 
       <%= if Enum.empty?(@devices) do %>
-        <div class="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
-          <UI.panel label="No devices found" body_class="p-5">
-            <p class="text-[13px] leading-relaxed text-muted">
+        <UI.panel body_class="p-0">
+          <div class="flex flex-col items-center px-6 py-10 text-center">
+            <.icon name="hero-cpu-chip" class="size-9 text-rule-strong" />
+            <h2 class="mt-3 font-display text-lg font-semibold">No devices found</h2>
+            <p class="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted">
               Nothing has responded on your network or on a serial port. Scanning keeps
               running, so a device will appear here as soon as it answers.
             </p>
+          </div>
 
-            <p class="nd-legend mt-5 mb-1">
+          <div class="border-t border-rule px-5 py-4">
+            <p class="nd-legend mb-1">
               <span>Why a device might not appear</span>
             </p>
 
@@ -75,30 +79,8 @@ defmodule NervesDesktopWeb.HomeLive do
                 </dd>
               </div>
             </dl>
-          </UI.panel>
-
-          <UI.panel label="Make a device say more about itself" body_class="p-5">
-            <:actions>
-              <button
-                phx-click={JS.dispatch("phx:copy", detail: %{text: @mdns_snippet})}
-                class="nd-btn nd-btn-ghost h-7"
-              >
-                <.icon name="hero-clipboard" class="size-3.5" /> Copy
-              </button>
-            </:actions>
-
-            <p class="text-[13px] leading-relaxed text-muted">
-              This list shows whatever a board advertises, which by default is not much.
-              Register the service in
-              <code class="rounded-sm bg-primary-soft px-1 font-mono text-xs text-primary">
-                Application.start/2
-              </code>
-              and the product, version, and platform columns fill in.
-            </p>
-
-            <pre class="nd-well nd-code mt-4 overflow-x-auto p-4"><code>{@mdns_html}</code></pre>
-          </UI.panel>
-        </div>
+          </div>
+        </UI.panel>
       <% else %>
         <UI.panel body_class="">
           <div class="overflow-x-auto">
@@ -155,6 +137,28 @@ defmodule NervesDesktopWeb.HomeLive do
           </div>
         </UI.panel>
       <% end %>
+
+      <UI.panel label="Why some columns are empty" body_class="p-5">
+        <:actions>
+          <button
+            phx-click={JS.dispatch("phx:copy", detail: %{text: @mdns_snippet})}
+            class="nd-btn nd-btn-ghost h-7"
+          >
+            <.icon name="hero-clipboard" class="size-3.5" /> Copy
+          </button>
+        </:actions>
+
+        <p class="max-w-3xl text-[13px] leading-relaxed text-muted">
+          A device only advertises what it is told to, which by default is not much. Register
+          the service in
+          <code class="rounded-sm bg-primary-soft px-1 font-mono text-xs text-primary">
+            Application.start/2
+          </code>
+          and its product, version, and platform fill in here.
+        </p>
+
+        <pre class="nd-well nd-code mt-4 overflow-x-auto p-4"><code>{@mdns_html}</code></pre>
+      </UI.panel>
     </Layouts.app>
     """
   end
