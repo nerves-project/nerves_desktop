@@ -10,6 +10,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
   alias NervesDesktop.Connection
   alias NervesDesktop.Connection.Buffer
   alias NervesDesktop.Connections.PasswordPrompt
+  alias NervesDesktop.Connections.SSHError
   alias NervesDesktop.Connections.SystemSSH.Command
 
   @impl NervesDesktop.Connection
@@ -82,7 +83,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
 
       {:error, reason} ->
         Logger.error("System SSH unavailable on this host: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, SSHError.describe(reason, target: target)}, state}
     end
   end
 
