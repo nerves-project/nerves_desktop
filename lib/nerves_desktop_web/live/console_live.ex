@@ -224,10 +224,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
     device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
     module = get_connection_module(device)
 
-    socket = push_print(socket, "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n")
+    socket =
+      push_print(
+        socket,
+        "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
+      )
 
     # Start child if not already running
-    ConnectionSupervisor.start_child(module, [target: target])
+    ConnectionSupervisor.start_child(module, target: target)
     |> handle_connection_result(socket, module, target)
   end
 
@@ -247,7 +251,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     case module.connect(pid, target, "root", password) do
       :ok ->
-        socket = assign(socket, status: :connected, connection_pid: pid, connection_module: module)
+        socket =
+          assign(socket, status: :connected, connection_pid: pid, connection_module: module)
+
         {:noreply, socket}
 
       {:error, reason} ->
@@ -274,7 +280,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
       socket
       |> assign(status: :connected, connection_pid: pid, connection_module: module)
       |> push_print(history)
-      
+
     {:noreply, socket}
   end
 
@@ -285,7 +291,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: inspect(reason)
-
 
   @impl true
   def render(assigns) do

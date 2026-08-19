@@ -21,8 +21,7 @@ if System.get_env("PHX_SERVER") do
 end
 
 if port = System.get_env("PORT") do
-  config :nerves_desktop, NervesDesktopWeb.Endpoint,
-    http: [port: String.to_integer(port)]
+  config :nerves_desktop, NervesDesktopWeb.Endpoint, http: [port: String.to_integer(port)]
 end
 
 if config_env() == :prod do

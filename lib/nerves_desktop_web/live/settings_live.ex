@@ -27,8 +27,7 @@ defmodule NervesDesktopWeb.SettingsLive do
       <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
         <div class="max-w-2xl mx-auto">
           <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <.icon name="hero-command-line" class="w-6 h-6 text-primary" />
-            Connection Settings
+            <.icon name="hero-command-line" class="w-6 h-6 text-primary" /> Connection Settings
           </h3>
 
           <.form for={%{}} phx-change="save_settings" class="space-y-8">
@@ -52,7 +51,8 @@ defmodule NervesDesktopWeb.SettingsLive do
                     </div>
                   </div>
                   <p class="text-sm text-gray-500 leading-relaxed">
-                    Uses the <code class="bg-gray-100 px-1 rounded">ssh</code> command on your system. Best compatibility with local SSH keys and configurations.
+                    Uses the <code class="bg-gray-100 px-1 rounded">ssh</code>
+                    command on your system. Best compatibility with local SSH keys and configurations.
                   </p>
                 </div>
               </label>
