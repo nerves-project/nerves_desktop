@@ -2,8 +2,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
   use NervesDesktopWeb, :live_view
 
   require Logger
+  alias NervesDesktop.Connection
   alias NervesDesktop.ConnectionSupervisor
-  alias NervesDesktop.Connections.{SystemSSH, ErlangSSH, UART}
+  alias NervesDesktop.Connections.{SystemSSH, UART}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -236,7 +237,13 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
   defp perform_connection({:ok, target}, socket) do
     device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
-    module = get_connection_module(device)
+
+    module =
+      Connection.backend_for(
+        device || %{},
+        Application.get_env(:nerves_desktop, :ssh_client, :erlang_ssh),
+        :os.type()
+      )
 
     socket =
       push_print(
@@ -247,15 +254,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
     # Start child if not already running
     ConnectionSupervisor.start_child(module, target: target)
     |> handle_connection_result(socket, module, target)
-  end
-
-  defp get_connection_module(%{type: :uart}), do: UART
-
-  defp get_connection_module(_device) do
-    case Application.get_env(:nerves_desktop, :ssh_client, :system_ssh) do
-      :system_ssh -> SystemSSH
-      :erlang_ssh -> ErlangSSH
-    end
   end
 
   defp handle_connection_result({:ok, pid}, socket, module, target) do
@@ -335,6 +333,16 @@ defmodule NervesDesktopWeb.ConsoleLive do
         <.icon name="hero-exclamation-triangle" class="w-4 h-4 text-yellow-600" />
         <span>
           Host key verification is disabled for this session. Connect only to trusted devices on secure networks.
+        </span>
+      </div>
+
+      <div
+        :if={@status == :connected && @connection_module == SystemSSH}
+        class="mb-4 flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl text-blue-800 text-xs"
+      >
+        <.icon name="hero-information-circle" class="w-4 h-4 text-blue-600" />
+        <span>
+          System SSH runs a fixed 80x24 terminal. Switch to Erlang SSH in Settings for a resizable console.
         </span>
       </div>
 

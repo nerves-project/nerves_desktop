@@ -29,4 +29,15 @@ defmodule NervesDesktop.Connection do
   def broadcast_closed(target) do
     Phoenix.PubSub.broadcast(NervesDesktop.PubSub, topic(target), {:connection_closed, target})
   end
+
+  @doc """
+  Picks the backend for a device. System SSH is only usable where `script` exists.
+  """
+  def backend_for(device, ssh_client, os_type \\ :os.type())
+  def backend_for(%{type: :uart}, _ssh_client, _os_type), do: NervesDesktop.Connections.UART
+
+  def backend_for(_device, :system_ssh, {:unix, _}),
+    do: NervesDesktop.Connections.SystemSSH
+
+  def backend_for(_device, _ssh_client, _os_type), do: NervesDesktop.Connections.ErlangSSH
 end

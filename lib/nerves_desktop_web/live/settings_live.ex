@@ -3,7 +3,7 @@ defmodule NervesDesktopWeb.SettingsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    ssh_client = Application.get_env(:nerves_desktop, :ssh_client, :system_ssh)
+    ssh_client = Application.get_env(:nerves_desktop, :ssh_client, :erlang_ssh)
     {:ok, assign(socket, ssh_client: ssh_client)}
   end
 
