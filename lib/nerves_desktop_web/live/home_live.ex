@@ -42,32 +42,36 @@ defmodule NervesDesktopWeb.HomeLive do
 
       <%= if Enum.empty?(@devices) do %>
         <div class="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
-          <UI.panel label="Nothing has answered yet" body_class="p-5">
+          <UI.panel label="No devices found" body_class="p-5">
             <p class="text-[13px] leading-relaxed text-muted">
-              The sweep runs every few seconds over mDNS and your serial ports. When a
-              board is missing, it is almost always one of these.
+              Nothing has responded on your network or on a serial port. Scanning keeps
+              running, so a device will appear here as soon as it answers.
             </p>
 
-            <dl class="mt-4 divide-y divide-rule border-t border-rule">
-              <div class="grid grid-cols-[9rem_1fr] gap-4 py-3">
-                <dt class="text-[13px] font-semibold">Wrong network</dt>
+            <p class="nd-legend mt-5 mb-1">
+              <span>Why a device might not appear</span>
+            </p>
+
+            <dl class="divide-y divide-rule">
+              <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
+                <dt class="text-[13px] font-semibold">Network</dt>
                 <dd class="text-[13px] leading-relaxed text-muted">
-                  mDNS does not cross subnets, and most VPNs swallow it. Put the board and
-                  this machine on the same LAN.
+                  Discovery uses mDNS, which does not cross subnets and is blocked by most
+                  VPNs. Keep the device and this computer on the same network.
                 </dd>
               </div>
-              <div class="grid grid-cols-[9rem_1fr] gap-4 py-3">
-                <dt class="text-[13px] font-semibold">Still booting</dt>
+              <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
+                <dt class="text-[13px] font-semibold">Boot time</dt>
                 <dd class="text-[13px] leading-relaxed text-muted">
-                  A device only answers once its network stack is up, a few seconds after
-                  power.
+                  A device only answers once its network is up, which is a few seconds after
+                  you power it on.
                 </dd>
               </div>
-              <div class="grid grid-cols-[9rem_1fr] gap-4 py-3">
-                <dt class="text-[13px] font-semibold">No network at all</dt>
+              <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
+                <dt class="text-[13px] font-semibold">No network</dt>
                 <dd class="text-[13px] leading-relaxed text-muted">
-                  Plug the board in over USB and it shows up here as a serial device
-                  instead.
+                  Connect the device over USB instead. It shows up here as a serial device
+                  and needs no network at all.
                 </dd>
               </div>
             </dl>
@@ -155,9 +159,9 @@ defmodule NervesDesktopWeb.HomeLive do
     """
   end
 
-  defp device_summary([]), do: "Sweeping the network and your serial ports"
-  defp device_summary([_]), do: "One board answering"
-  defp device_summary(devices), do: "#{length(devices)} boards answering"
+  defp device_summary([]), do: "Scanning the network and your serial ports"
+  defp device_summary([_]), do: "1 device found"
+  defp device_summary(devices), do: "#{length(devices)} devices found"
 
   defp mount_snippet do
     """
