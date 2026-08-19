@@ -52,6 +52,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(selected_target: target)
         |> assign(selected_name: name)
         |> check_existing_connection(target)
+        |> maybe_prompt_connect()
       else
         socket
       end
@@ -66,6 +67,18 @@ defmodule NervesDesktopWeb.ConsoleLive do
       socket
     end
   end
+
+  defp maybe_prompt_connect(
+         %{assigns: %{status: :disconnected, selected_target: target}} = socket
+       )
+       when is_binary(target) do
+    push_print(
+      socket,
+      "\r\n\x1B[1;36m#{target}\x1B[0m\r\n\x1B[90mClick Connect to start a session.\x1B[0m\r\n"
+    )
+  end
+
+  defp maybe_prompt_connect(socket), do: socket
 
   defp check_existing_connection(socket, target) do
     case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
@@ -195,6 +208,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
   def handle_event("resize", _params, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_event("clear_terminal", _params, socket) do
+    {:noreply, push_event(socket, "clear", %{})}
+  end
+
+  @impl true
   def handle_event("data", %{"data" => data}, socket) do
     if socket.assigns.connection_pid && socket.assigns.connection_module do
       socket.assigns.connection_module.send_data(socket.assigns.connection_pid, data)
@@ -222,10 +240,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
       )
 
     socket =
-      push_print(
-        socket,
-        "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
-      )
+      socket
+      |> push_event("clear", %{})
+      |> push_print("\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n")
 
     ConnectionSupervisor.start_child(module, target: target)
     |> handle_connection_result(socket, module, target)
@@ -320,7 +337,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
       </div>
 
       <div class="flex-1 flex flex-col min-h-0">
-        <div class="bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-gray-800 flex-1">
+        <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-800 flex-1">
           <!-- Terminal Header -->
           <div class="bg-gray-800/50 px-6 py-4 flex items-center justify-between border-b border-gray-700/50">
             <div class="flex items-center gap-4">
@@ -343,6 +360,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
                 <span>Online</span>
                 <span class="w-2 h-2 rounded-full bg-green-500"></span>
               </div>
+              <button
+                type="button"
+                id="clear-terminal"
+                phx-click="clear_terminal"
+                class="rounded-lg px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-gray-500 transition-colors hover:bg-gray-700/40 hover:text-gray-200 focus-visible:ring-1 focus-visible:ring-gray-500 focus-visible:outline-none"
+              >
+                Clear
+              </button>
             </div>
           </div>
           
