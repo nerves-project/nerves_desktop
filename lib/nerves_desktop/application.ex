@@ -16,6 +16,8 @@ defmodule NervesDesktop.Application do
       {ElixirKit.PubSub, connect: pubsub || :ignore, on_exit: fn -> System.stop() end},
       {Task.Supervisor, name: NervesDesktop.TaskSupervisor},
       {NervesDesktop.DeviceScanner, []},
+      {Registry, keys: :unique, name: NervesDesktop.Firmware.UpdateRegistry},
+      NervesDesktop.Firmware.UpdateSupervisor,
       {NervesDesktop.Firmware.ReleaseIndex, []},
       {NervesDesktop.HostInfo, []},
       NervesDesktopWeb.Endpoint,
