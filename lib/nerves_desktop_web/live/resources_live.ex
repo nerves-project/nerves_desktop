@@ -8,10 +8,7 @@ defmodule NervesDesktopWeb.ResourcesLive do
 
   @impl true
   def handle_event("open_url", %{"url" => url}, socket) do
-    if System.get_env("ELIXIRKIT_PUBSUB") do
-      ElixirKit.PubSub.broadcast("opener", url)
-    end
-
+    NervesDesktop.Native.broadcast("opener", url)
     {:noreply, socket}
   end
 

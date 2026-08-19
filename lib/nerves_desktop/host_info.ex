@@ -47,10 +47,7 @@ defmodule NervesDesktop.HostInfo do
 
   @impl true
   def init(_opts) do
-    if System.get_env("ELIXIRKIT_PUBSUB") do
-      ElixirKit.PubSub.subscribe(@topic)
-    end
-
+    NervesDesktop.Native.subscribe(@topic)
     {:ok, %{}}
   end
 
