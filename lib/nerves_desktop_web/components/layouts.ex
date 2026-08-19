@@ -84,26 +84,18 @@ defmodule NervesDesktopWeb.Layouts do
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
+      <%!-- One dropped connection is one message: the client and server variants
+            of this state are indistinguishable to whoever is looking at it. --%>
       <.flash
-        id="client-error"
+        id="connection-error"
         kind={:error}
-        title="Lost connection to the app"
-        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        title="Not connected"
+        phx-disconnected={show("#connection-error") |> JS.remove_attribute("hidden")}
+        phx-connected={hide("#connection-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Reconnecting <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-
-      <.flash
-        id="server-error"
-        kind={:error}
-        title="The app stopped responding"
-        phx-disconnected={show(".phx-server-error #server-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        Reconnecting <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+        Trying to reconnect
+        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
     </div>
     """
