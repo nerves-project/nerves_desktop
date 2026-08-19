@@ -1,5 +1,5 @@
 defmodule NervesDesktop.Connections.SystemSSH do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
   @behaviour NervesDesktop.Connection
 
@@ -116,7 +116,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
   def handle_info({port, {:data, data}}, %{port: port} = state) do
     state =
       if state.password && !state.password_sent && data =~ ~r/[Pp]assword:/ do
-        Logger.info("Detected password prompt, sending password...")
+        Logger.info("Detected auth prompt, responding")
         Process.send_after(self(), {:send_password, state.password}, 100)
         %{state | password_sent: true}
       else
@@ -142,5 +142,17 @@ defmodule NervesDesktop.Connections.SystemSSH do
     Connection.broadcast_closed(state.target)
 
     {:stop, :normal, state}
+  end
+
+  @impl true
+  def handle_info({:send_password, _password}, state) do
+    Logger.debug("SystemSSH dropped a deferred credential send with no open port")
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    Logger.debug("SystemSSH unhandled info: #{inspect(msg)}")
+    {:noreply, state}
   end
 end

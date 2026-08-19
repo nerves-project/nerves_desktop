@@ -1,5 +1,5 @@
 defmodule NervesDesktop.Connections.ErlangSSH do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
   @behaviour NervesDesktop.Connection
 
@@ -29,9 +29,17 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
   @impl true
   def init(opts) do
+    # Trap exits so terminate/2 runs on supervisor shutdown and closes the connection
+    Process.flag(:trap_exit, true)
     target = Keyword.fetch!(opts, :target)
     Connection.register_backend(target, __MODULE__)
     {:ok, %{conn: nil, channel: nil, target: target, buffer: Buffer.new()}}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    if state.conn, do: :ssh.close(state.conn)
+    :ok
   end
 
   @impl true

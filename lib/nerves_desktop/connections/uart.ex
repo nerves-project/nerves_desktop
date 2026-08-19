@@ -1,5 +1,5 @@
 defmodule NervesDesktop.Connections.UART do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
   @behaviour NervesDesktop.Connection
 
@@ -40,6 +40,8 @@ defmodule NervesDesktop.Connections.UART do
   def handle_call({:connect, target}, _from, state) do
     Logger.info("Opening UART connection to #{target}")
 
+    Circuits.UART.close(state.uart_pid)
+
     case Circuits.UART.open(state.uart_pid, target, speed: 115_200, active: true) do
       :ok ->
         # Send a newline to trigger the remote prompt
@@ -79,5 +81,11 @@ defmodule NervesDesktop.Connections.UART do
 
     Connection.broadcast_closed(state.target)
     {:stop, :normal, state}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    Logger.debug("UART unhandled info: #{inspect(msg)}")
+    {:noreply, state}
   end
 end
