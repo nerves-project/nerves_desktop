@@ -3,7 +3,7 @@ defmodule NervesDesktopWeb.ResourcesLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, resource_groups: nerves_resources())}
+    {:ok, assign(socket, page_title: "Resources", resource_groups: nerves_resources())}
   end
 
   @impl true
@@ -20,64 +20,48 @@ defmodule NervesDesktopWeb.ResourcesLive do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:resources}>
       <UI.page_header
-        icon="hero-book-open"
-        title="Nerves Resources"
-        subtitle="Explore documentation, packages, and community resources"
+        title="Resources"
+        subtitle="The Nerves libraries, and where to ask when something breaks"
       />
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div
-          :for={group <- @resource_groups}
-          class="break-inside-avoid bg-white rounded-[2rem] border border-gray-100 p-8 flex flex-col overflow-hidden relative group/card"
-        >
-          <div class="relative z-10 flex flex-col h-full">
-            <div class="flex items-center gap-4 mb-6">
-              <div class="p-3 bg-gray-50 rounded-xl text-primary group-hover/card:bg-primary group-hover/card:text-white transition-colors duration-300">
-                <.icon name={group.icon} class="size-6" />
-              </div>
-              <h3 class="text-xl font-extrabold text-gray-900 tracking-tight">{group.title}</h3>
-            </div>
+      <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        <UI.panel :for={group <- @resource_groups} label={group.title} body_class="p-0">
+          <ul class="divide-y divide-rule">
+            <li :for={item <- group.links} class="px-4 py-3">
+              <p class="text-[13px] font-semibold">{item.name}</p>
+              <p :if={item[:desc]} class="mt-0.5 text-[13px] leading-relaxed text-muted">
+                {item.desc}
+              </p>
 
-            <div class="space-y-6 flex-1">
-              <div :for={item <- group.links} class="flex flex-col gap-1.5">
-                <div class="text-base font-bold text-gray-800">{item.name}</div>
-                <p :if={item[:desc]} class="text-sm text-gray-500 leading-relaxed">
-                  {item.desc}
-                </p>
-                <div class="flex items-center gap-4 text-sm mt-1">
-                  <%= if item[:hex] do %>
-                    <button
-                      phx-click="open_url"
-                      phx-value-url={item.hex}
-                      class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
-                    >
-                      <.icon name="hero-cube" class="w-4 h-4" /> Hex
-                    </button>
-                  <% end %>
-                  <%= if item[:github] do %>
-                    <span :if={item[:hex]} class="text-gray-200">|</span>
-                    <button
-                      phx-click="open_url"
-                      phx-value-url={item.github}
-                      class="text-gray-400 hover:text-primary flex items-center gap-1.5 transition-colors"
-                    >
-                      <.icon name="hero-code-bracket" class="w-4 h-4" /> GitHub
-                    </button>
-                  <% end %>
-                  <%= if item[:url] do %>
-                    <button
-                      phx-click="open_url"
-                      phx-value-url={item.url}
-                      class="text-primary font-bold hover:underline flex items-center gap-1.5"
-                    >
-                      Visit Site <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
-                    </button>
-                  <% end %>
-                </div>
+              <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <button
+                  :if={item[:url]}
+                  phx-click="open_url"
+                  phx-value-url={item.url}
+                  class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  Open site <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
+                </button>
+                <button
+                  :if={item[:hex]}
+                  phx-click="open_url"
+                  phx-value-url={item.hex}
+                  class="inline-flex items-center gap-1 text-xs text-muted hover:text-primary hover:underline"
+                >
+                  <.icon name="hero-cube" class="size-3.5" /> Hex
+                </button>
+                <button
+                  :if={item[:github]}
+                  phx-click="open_url"
+                  phx-value-url={item.github}
+                  class="inline-flex items-center gap-1 text-xs text-muted hover:text-primary hover:underline"
+                >
+                  <.icon name="hero-code-bracket" class="size-3.5" /> GitHub
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
+            </li>
+          </ul>
+        </UI.panel>
       </div>
     </Layouts.app>
     """
@@ -369,6 +353,38 @@ defmodule NervesDesktopWeb.ResourcesLive do
         ]
       },
       %{
+        title: "Infrastructure & Build",
+        icon: "hero-wrench-screwdriver",
+        links: [
+          %{
+            name: "Nerves Hub",
+            github: "https://github.com/nerves-hub",
+            desc: "Over-the-air (OTA) firmware update server."
+          },
+          %{
+            name: "fwup",
+            github: "https://github.com/fwup-home/fwup",
+            desc: "Configurable embedded firmware update utility."
+          },
+          %{
+            name: "toolchains",
+            github: "https://github.com/nerves-project/toolchains",
+            desc: "Cross-compilers for building Nerves firmware."
+          },
+          %{
+            name: "nerves_systems",
+            github: "https://github.com/nerves-project/nerves_systems",
+            desc: "Scripts for maintaining Nerves system repositories."
+          },
+          %{
+            name: "nerves_system_linter",
+            github: "https://github.com/nerves-project/nerves_system_linter",
+            hex: "https://hex.pm/packages/nerves_system_linter",
+            desc: "Validate Nerves system configuration files."
+          }
+        ]
+      },
+      %{
         title: "Networking (Wireless)",
         icon: "hero-wifi",
         links: [
@@ -425,38 +441,6 @@ defmodule NervesDesktopWeb.ResourcesLive do
             github: "https://github.com/nerves-networking/vintage_net_direct",
             hex: "https://hex.pm/packages/vintage_net_direct",
             desc: "Support for direct host-to-device networking."
-          }
-        ]
-      },
-      %{
-        title: "Infrastructure & Build",
-        icon: "hero-wrench-screwdriver",
-        links: [
-          %{
-            name: "Nerves Hub",
-            github: "https://github.com/nerves-hub",
-            desc: "Over-the-air (OTA) firmware update server."
-          },
-          %{
-            name: "fwup",
-            github: "https://github.com/fwup-home/fwup",
-            desc: "Configurable embedded firmware update utility."
-          },
-          %{
-            name: "toolchains",
-            github: "https://github.com/nerves-project/toolchains",
-            desc: "Cross-compilers for building Nerves firmware."
-          },
-          %{
-            name: "nerves_systems",
-            github: "https://github.com/nerves-project/nerves_systems",
-            desc: "Scripts for maintaining Nerves system repositories."
-          },
-          %{
-            name: "nerves_system_linter",
-            github: "https://github.com/nerves-project/nerves_system_linter",
-            hex: "https://hex.pm/packages/nerves_system_linter",
-            desc: "Validate Nerves system configuration files."
           }
         ]
       },

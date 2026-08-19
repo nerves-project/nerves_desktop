@@ -3,7 +3,74 @@ defmodule NervesDesktopWeb.UI do
   import NervesDesktopWeb.CoreComponents
 
   @doc """
-  Renders a scanning status indicator with an optional refresh button.
+  Renders a page header: title, one-line summary, and an actions slot.
+
+  The page is already named in the sidebar, so the header stays quiet and
+  gives its weight to the actions instead.
+  """
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  slot :actions
+
+  def page_header(assigns) do
+    ~H"""
+    <header class="flex flex-col gap-3 border-b border-rule pb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+      <div class="min-w-0">
+        <h1 class="font-display text-[1.625rem] leading-tight font-semibold">{@title}</h1>
+        <p :if={@subtitle} class="mt-0.5 text-[13px] text-muted">{@subtitle}</p>
+      </div>
+      <div :if={@actions != []} class="shrink-0">{render_slot(@actions)}</div>
+    </header>
+    """
+  end
+
+  @doc """
+  Renders a panel: the app's one container.
+
+  The `label` sits on the rule that bounds the panel. Pass `step` when the
+  panels form a real sequence, and `done` once that step is satisfied.
+  """
+  attr :label, :string, default: nil
+  attr :step, :integer, default: nil
+  attr :done, :boolean, default: false
+  attr :class, :any, default: nil
+  attr :body_class, :any, default: "p-4"
+  attr :rest, :global
+  slot :actions
+  slot :inner_block, required: true
+
+  def panel(assigns) do
+    ~H"""
+    <section class={["nd-panel flex flex-col", @class]} {@rest}>
+      <div
+        :if={@label || @step}
+        class="flex items-center gap-2.5 rounded-t-[9px] border-b border-rule bg-sunk px-4 py-2.5"
+      >
+        <span
+          :if={@step}
+          class={[
+            "flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-2xs font-semibold text-white transition-colors",
+            (@done && "bg-live") || "bg-primary"
+          ]}
+        >
+          <.icon :if={@done} name="hero-check" class="size-3" />
+          <span :if={!@done}>{@step}</span>
+        </span>
+        <span class="nd-legend min-w-0 flex-1">
+          <span class="truncate">{@label}</span>
+        </span>
+        <div :if={@actions != []} class="flex shrink-0 items-center gap-1">
+          {render_slot(@actions)}
+        </div>
+      </div>
+      <div class={["min-h-0 flex-1", @body_class]}>{render_slot(@inner_block)}</div>
+    </section>
+    """
+  end
+
+  @doc """
+  Renders the discovery readout: whether scanning is live, when it last ran,
+  and a control to run it again.
   """
   attr :last_scan_at, :any, required: true
   attr :id, :string, default: "scanning-status"
@@ -12,87 +79,38 @@ defmodule NervesDesktopWeb.UI do
 
   def scanning_status(assigns) do
     ~H"""
-    <div class={[
-      "flex flex-nowrap items-center justify-between lg:justify-start gap-4 lg:gap-6 bg-white py-2 px-3 rounded-2xl shadow-sm border border-gray-100",
-      @class
-    ]}>
-      <div class="flex flex-col items-start lg:items-end shrink-0">
-        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Status</span>
-        <div class="flex items-center gap-2">
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75">
-            </span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-          </span>
-          <span class="text-sm font-semibold text-gray-700">Scanning</span>
-        </div>
-      </div>
+    <div class={["flex items-center gap-3", @class]}>
+      <span class="nd-chip nd-chip-live">
+        <span class="nd-led motion-safe:animate-pulse"></span> Scanning
+      </span>
 
-      <div class="h-8 w-px bg-gray-100 shrink-0"></div>
-
-      <div class="flex flex-col items-start lg:items-end shrink-0">
-        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-400">
-          Last Scan
-        </span>
+      <p class="text-xs text-muted">
+        Last swept
         <time
           id={@id}
           datetime={DateTime.to_iso8601(@last_scan_at)}
           phx-hook="LocalTime"
-          class="text-sm font-mono font-bold text-gray-900"
+          class="font-mono tabular-nums text-ink"
         >
           {Calendar.strftime(@last_scan_at, "%H:%M:%S")}
         </time>
-      </div>
+      </p>
 
-      <%= if @on_refresh do %>
-        <div class="shrink-0">
-          <button
-            phx-click={@on_refresh}
-            class="btn btn-primary btn-sm shadow-lg shadow-primary/20 flex gap-2 items-center rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] h-8"
-            phx-throttle="2000"
-          >
-            <.icon name="hero-arrow-path" class="w-4 h-4" />
-            <span class="hidden sm:inline">Refresh</span>
-          </button>
-        </div>
-      <% end %>
+      <button
+        :if={@on_refresh}
+        phx-click={@on_refresh}
+        phx-throttle="2000"
+        class="nd-btn nd-btn-secondary"
+      >
+        <.icon name="hero-arrow-path" class="size-4" /> Scan now
+      </button>
     </div>
     """
   end
 
   @doc """
-  Renders a page header with an icon, title, subtitle, and an actions slot.
-  """
-  attr :icon, :string, required: true
-  attr :title, :string, required: true
-  attr :subtitle, :string, default: nil
-  slot :actions
-
-  def page_header(assigns) do
-    ~H"""
-    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-10">
-      <div>
-        <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
-          <div class="p-2 bg-primary/10 rounded-xl size-12 flex items-center">
-            <.icon name={@icon} class="w-full h-full text-primary" />
-          </div>
-          {@title}
-        </h1>
-        <%= if @subtitle do %>
-          <p class="text-lg text-gray-500 mt-2 font-medium">
-            {@subtitle}
-          </p>
-        <% end %>
-      </div>
-      <div :if={@actions != []} class="w-full lg:w-auto">
-        {render_slot(@actions)}
-      </div>
-    </header>
-    """
-  end
-
-  @doc """
-  Renders an SSH connection form for selecting a device and entering a password.
+  Renders the console connection bar: pick a device, optionally supply a
+  password, and open or close the session.
   """
   attr :devices, :list, required: true
   attr :selected_target, :string, required: true
@@ -104,112 +122,72 @@ defmodule NervesDesktopWeb.UI do
 
   def ssh_connection_form(assigns) do
     ~H"""
-    <div class="overflow-x-auto">
-      <.form
-        :let={f}
-        for={to_form(%{"target" => @selected_target, "password" => @password}, as: :connection)}
-        phx-change={@on_change}
-        phx-submit={@on_submit}
-        class="flex flex-nowrap items-end gap-3 min-w-max"
-      >
-        <div class="w-fit min-w-[180px] shrink-0">
-          <.input
-            field={f[:target]}
-            type="select"
-            label="Target Device"
-            disabled={@status != :disconnected}
-            options={[
-              {"Select a device...", ""}
-              | Enum.map(@devices, &{&1[:name] || &1[:hostname], &1[:target]})
-            ]}
-          />
-        </div>
-
-        <div class="w-28 shrink-0">
-          <.input
-            field={f[:password]}
-            type="password"
-            label="SSH Password"
-            disabled={@status != :disconnected}
-            placeholder="optional"
-          />
-        </div>
-
-        <div class="flex items-center mb-3 shrink-0">
-          <%= if @status == :disconnected do %>
-            <button
-              type="submit"
-              class="btn btn-primary btn-sm rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 px-6 h-9"
-            >
-              <.icon name="hero-bolt" class="w-4 h-4" /> Connect
-            </button>
-          <% else %>
-            <button
-              type="button"
-              phx-click={@on_disconnect}
-              class="btn btn-error btn-outline btn-sm rounded-xl flex items-center gap-2 px-6 h-9"
-            >
-              <.icon name="hero-x-mark" class="w-4 h-4" /> Disconnect
-            </button>
-          <% end %>
-        </div>
-      </.form>
-    </div>
-    """
-  end
-
-  @doc """
-  Renders a step box for multi-step processes like the firmware burner.
-  """
-  attr :step, :integer, required: true
-  attr :title, :string, required: true
-  attr :class, :string, default: nil
-  slot :actions
-  slot :inner_block, required: true
-
-  def step_box(assigns) do
-    ~H"""
-    <div class={[
-      "bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 transition-all",
-      @class
-    ]}>
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <span class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm">
-            {@step}
-          </span>
-          {@title}
-        </h3>
-        <div :if={@actions != []} class="flex items-center gap-2">
-          {render_slot(@actions)}
-        </div>
+    <.form
+      :let={f}
+      for={to_form(%{"target" => @selected_target, "password" => @password}, as: :connection)}
+      id="connection-form"
+      phx-change={@on_change}
+      phx-submit={@on_submit}
+      class="flex flex-wrap items-end gap-3"
+    >
+      <div class="w-56">
+        <.input
+          field={f[:target]}
+          type="select"
+          label="Device"
+          disabled={@status != :disconnected}
+          options={[
+            {"Select a device", ""}
+            | Enum.map(@devices, &{&1[:name] || &1[:hostname], &1[:target]})
+          ]}
+        />
       </div>
-      {render_slot(@inner_block)}
-    </div>
+
+      <div class="w-40">
+        <.input
+          field={f[:password]}
+          type="password"
+          label="Password"
+          disabled={@status != :disconnected}
+          placeholder="Leave blank for keys"
+          autocomplete="off"
+        />
+      </div>
+
+      <%= if @status == :disconnected do %>
+        <button type="submit" class="nd-btn nd-btn-primary">
+          <.icon name="hero-bolt" class="size-4" /> Connect
+        </button>
+      <% else %>
+        <button type="button" phx-click={@on_disconnect} class="nd-btn nd-btn-secondary">
+          <.icon name="hero-x-mark" class="size-4" /> Disconnect
+        </button>
+      <% end %>
+    </.form>
     """
   end
 
   @doc """
-  Renders a dashed placeholder box for empty or waiting states.
+  Renders an empty or waiting state inside a panel.
   """
+  attr :icon, :string, default: nil
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
   def placeholder(assigns) do
     ~H"""
     <div class={[
-      "p-8 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400",
+      "flex items-center justify-center gap-2 rounded-md border border-dashed border-rule-strong bg-sunk px-4 py-6 text-center text-[13px] text-muted",
       @class
     ]}>
-      <div class="text-sm font-medium">
-        {render_slot(@inner_block)}
-      </div>
+      <.icon :if={@icon} name={@icon} class="size-4 shrink-0 text-faint" />
+      <div>{render_slot(@inner_block)}</div>
     </div>
     """
   end
 
   @doc """
-  Renders a navigation link for the sidebar.
+  Renders a sidebar navigation link.
   """
   attr :href, :string, required: true
   attr :icon, :string, required: true
@@ -220,22 +198,38 @@ defmodule NervesDesktopWeb.UI do
     ~H"""
     <.link
       href={@href}
-      class={[
-        "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all group/link",
-        @active && "bg-primary text-white shadow-lg shadow-primary/25",
-        !@active && "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-      ]}
+      aria-current={@active && "page"}
+      class={["nd-nav-link", @active && "nd-nav-link-active"]}
     >
-      <.icon
-        name={@icon}
-        class={[
-          "w-5 h-5 transition-colors shrink-0",
-          @active && "text-white",
-          !@active && "text-gray-400 group-hover/link:text-primary"
-        ]}
-      />
+      <.icon name={@icon} class="nd-nav-icon size-4 shrink-0 transition-colors" />
       {render_slot(@inner_block)}
     </.link>
+    """
+  end
+
+  @doc """
+  Renders a value that copies to the clipboard when clicked.
+  """
+  attr :value, :string, default: nil
+  attr :class, :string, default: nil
+  attr :fallback, :string, default: "unknown"
+
+  def copyable(assigns) do
+    ~H"""
+    <button
+      :if={@value}
+      type="button"
+      phx-click={Phoenix.LiveView.JS.dispatch("phx:copy", detail: %{text: @value})}
+      title={"Copy #{@value}"}
+      class={["nd-copy group/copy", @class]}
+    >
+      <span class="truncate">{@value}</span>
+      <.icon
+        name="hero-clipboard"
+        class="size-3 shrink-0 opacity-0 transition-opacity group-hover/copy:opacity-100"
+      />
+    </button>
+    <span :if={!@value} class={["font-mono text-xs text-faint", @class]}>{@fallback}</span>
     """
   end
 end
