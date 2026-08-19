@@ -5,6 +5,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
   alias NervesDesktop.Connection
   alias NervesDesktop.ConnectionSupervisor
   alias NervesDesktop.Connections.{ErlangSSH, SystemSSH, UART}
+  alias NervesDesktop.Firmware.Catalog
 
   @impl true
   def mount(_params, _session, socket) do
@@ -48,10 +49,13 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     socket =
       if target do
+        new_device? = socket.assigns.selected_target != target
+
         socket
         |> maybe_clear_terminal(target)
         |> assign(selected_target: target)
         |> assign(selected_name: name)
+        |> prefill_password(target, new_device?)
         |> check_existing_connection(target)
         |> maybe_prompt_connect()
       else
@@ -165,13 +169,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
         socket
       ) do
     device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
+    new_device? = socket.assigns.selected_target != target
 
     {:noreply,
      socket
      |> maybe_clear_terminal(target)
      |> assign(selected_target: target)
-     |> assign(password: password)
-     |> assign(selected_name: device && (device[:name] || device[:hostname]))}
+     |> assign(selected_name: device && (device[:name] || device[:hostname]))
+     |> put_password(password, target, new_device?)}
   end
 
   @impl true
@@ -226,6 +231,18 @@ defmodule NervesDesktopWeb.ConsoleLive do
   defp backend_name(SystemSSH), do: "System SSH"
   defp backend_name(UART), do: "Serial"
   defp backend_name(module), do: module |> Module.split() |> List.last()
+
+  # Choosing a different device offers that image's documented password;
+  # editing the field for the device already chosen leaves the typing alone.
+  defp put_password(socket, _password, target, true), do: prefill_password(socket, target, true)
+  defp put_password(socket, password, _target, false), do: assign(socket, password: password)
+
+  defp prefill_password(socket, _target, false), do: socket
+
+  defp prefill_password(socket, target, true) do
+    device = Enum.find(socket.assigns.devices, &(&1[:target] == target))
+    assign(socket, password: Catalog.password_for(device) || "")
+  end
 
   defp validate_target(nil), do: {:error, :no_target}
   defp validate_target(""), do: {:error, :no_target}

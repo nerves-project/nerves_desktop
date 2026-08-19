@@ -62,10 +62,30 @@ defmodule NervesDesktop.Firmware.CatalogTest do
       assert Catalog.default_password(livebook) == "nerves"
     end
 
-    test "offers no guess for an image whose login is not documented" do
+    test "knows the kiosk demo's login too" do
       {:ok, _, kiosk} = Catalog.match(device(%{product: "kiosk_demo", platform: "rpi4"}))
 
-      assert Catalog.default_password(kiosk) == nil
+      assert Catalog.default_password(kiosk) == "kiosk"
+    end
+  end
+
+  describe "password_for/1" do
+    test "answers from what a device reports running" do
+      assert Catalog.password_for(device()) == "circuits"
+      assert Catalog.password_for(device(%{product: "nerves_livebook"})) == "nerves"
+      assert Catalog.password_for(device(%{product: "kiosk_demo"})) == "kiosk"
+    end
+
+    test "ignores the board, since the password belongs to the image" do
+      # grisp2 cannot be updated over the air, but it still has a login.
+      assert Catalog.password_for(device(%{platform: "grisp2"})) == "circuits"
+      assert Catalog.password_for(device(%{platform: "some_unknown_board"})) == "circuits"
+    end
+
+    test "offers nothing for a device running something else" do
+      assert Catalog.password_for(device(%{product: "my_custom_app"})) == nil
+      assert Catalog.password_for(device(%{product: nil})) == nil
+      assert Catalog.password_for(nil) == nil
     end
   end
 
