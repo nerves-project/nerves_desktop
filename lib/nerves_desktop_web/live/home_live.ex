@@ -138,7 +138,11 @@ defmodule NervesDesktopWeb.HomeLive do
         </UI.panel>
       <% end %>
 
-      <UI.panel label="Why some columns are empty" body_class="p-5">
+      <UI.panel
+        :if={any_details_missing?(@devices)}
+        label="Some devices aren't reporting firmware details"
+        body_class="p-5"
+      >
         <:actions>
           <button
             phx-click={JS.dispatch("phx:copy", detail: %{text: @mdns_snippet})}
@@ -149,15 +153,22 @@ defmodule NervesDesktopWeb.HomeLive do
         </:actions>
 
         <p class="max-w-3xl text-[13px] leading-relaxed text-muted">
-          A device only advertises what it is told to, which by default is not much. Register
-          the service in <UI.code text="Application.start/2" />
-          and its product, version, and platform fill in here.
+          A device only advertises what it is told to. Add this to
+          <UI.code text="Application.start/2" /> on the device to fill in the blank columns.
         </p>
 
         <pre class="nd-well nd-code mt-4 overflow-x-auto p-4"><code>{@mdns_html}</code></pre>
       </UI.panel>
     </Layouts.app>
     """
+  end
+
+  # Blank Firmware columns mean the device is not advertising its metadata, which
+  # is what the mDNS snippet below the table fixes.
+  defp any_details_missing?(devices) do
+    Enum.any?(devices, fn device ->
+      is_nil(device[:product]) or is_nil(device[:version]) or is_nil(device[:platform])
+    end)
   end
 
   defp device_summary([]), do: "Scanning the network and your serial ports"
