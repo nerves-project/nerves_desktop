@@ -127,11 +127,13 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
     )
   end
 
-  test "a refused catalog install retries with that image's known password", %{device: device} do
+  test "a catalog install offers that image's known password from the start", %{device: device} do
     {:ok, _pid} = start_catalog(device)
 
-    assert_receive {:attempt, nil}, 2_000
+    # One connection, not a failed one followed by a retry: the SSH client
+    # still tries keys first, so this costs a device with a key nothing.
     assert_receive {:attempt, "circuits"}, 2_000
+    refute_receive {:attempt, nil}, 500
     assert_receive {:update_progress, _id, %{phase: :rebooting}}, 2_000
   end
 

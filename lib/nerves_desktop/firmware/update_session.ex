@@ -12,7 +12,6 @@ defmodule NervesDesktop.Firmware.UpdateSession do
 
   use GenServer, restart: :temporary
 
-  alias NervesDesktop.Connections.SSHError
   alias NervesDesktop.Firmware.Catalog
   alias NervesDesktop.Firmware.Upload
 
@@ -157,16 +156,7 @@ defmodule NervesDesktop.Firmware.UpdateSession do
   defp upload(parent, state, path) do
     send(parent, {:phase, :uploading})
 
-    case attempt(parent, state, path, state.password) do
-      {:error, reason} ->
-        case published_password(state, reason) do
-          nil -> {:error, reason}
-          password -> attempt(parent, state, path, password)
-        end
-
-      result ->
-        result
-    end
+    attempt(parent, state, path, state.password || published_password(state))
   end
 
   defp attempt(parent, state, path, password) do
@@ -176,12 +166,13 @@ defmodule NervesDesktop.Firmware.UpdateSession do
     )
   end
 
-  # A published image has a documented login, so a refusal is worth one more
-  # try before asking. Firmware chosen from disk is somebody's own build and
-  # gets no guess, and a password the user typed is never second-guessed.
-  defp published_password(%{source: {:catalog, _name, config, _target}, password: nil}, reason) do
-    if SSHError.auth_failure?(reason), do: Catalog.default_password(config)
-  end
+  # A published image has a documented login, so offer it from the start. The
+  # SSH client still tries keys first, so a device that does authorize a key
+  # never sees the password, and this avoids a failed connection just to learn
+  # something already known. Firmware chosen from disk is somebody's own build
+  # and gets no guess.
+  defp published_password(%{source: {:catalog, _name, config, _target}}),
+    do: Catalog.default_password(config)
 
-  defp published_password(_state, _reason), do: nil
+  defp published_password(_state), do: nil
 end

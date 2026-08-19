@@ -30,6 +30,46 @@ defmodule NervesDesktopWeb.HomeLiveUpdateTest do
     assert render_click(view, "close_menu", %{})
   end
 
+  test "the rebooting row clears once the device comes back", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    device = %{
+      id: "network:pi.local",
+      name: "pi",
+      target: "pi.local",
+      hostname: "pi.local",
+      type: :network,
+      product: "circuits_quickstart",
+      platform: "rpi0_2",
+      version: "0.16.2",
+      uuid: "same-uuid-after-a-reinstall"
+    }
+
+    send(view.pid, {:devices_updated, [device]})
+    send(view.pid, {:update_progress, device.id, %{phase: :rebooting, percent: 100, error: nil}})
+    assert render(view) =~ "Sent"
+
+    # The device drops off while it reboots, then answers again. A reinstall
+    # keeps the same uuid, so the round trip is the only usable signal.
+    send(view.pid, {:devices_updated, []})
+    send(view.pid, {:devices_updated, [device]})
+
+    refute render(view) =~ "Sent"
+  end
+
+  test "a device that never returns does not leave the bar running", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    device = %{id: "network:gone.local", name: "gone", target: "gone.local", type: :network}
+
+    send(view.pid, {:devices_updated, [device]})
+    send(view.pid, {:update_progress, device.id, %{phase: :rebooting, percent: 100, error: nil}})
+    assert render(view) =~ "Sent"
+
+    send(view.pid, {:forget_update, device.id})
+    refute render(view) =~ "Sent"
+  end
+
   test "cancelling an update for an unknown device is harmless", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
