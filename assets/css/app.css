@@ -528,6 +528,19 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
   }
 
+  /* Inline code inside prose. Kept as one class so the markup stays short
+     enough that the formatter cannot wrap it and leave whitespace inside the
+     tinted box. */
+  .nd-code-inline {
+    padding-inline: 0.25rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-soft);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    color: var(--color-primary);
+  }
+
   /* --- Code samples ---
      Token hues are spaced by lightness as well as by hue, and each clears AA
      on the sunk surface these samples sit on. --- */

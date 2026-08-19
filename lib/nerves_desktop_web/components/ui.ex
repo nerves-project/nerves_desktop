@@ -208,6 +208,20 @@ defmodule NervesDesktopWeb.UI do
   end
 
   @doc """
+  Renders an inline code reference inside prose.
+
+  Takes its text as an attribute rather than a slot so template formatting can
+  never wrap the tag and leave whitespace inside the tinted box.
+  """
+  attr :text, :string, required: true
+
+  def code(assigns) do
+    ~H"""
+    <code class="nd-code-inline">{@text}</code>
+    """
+  end
+
+  @doc """
   Renders a value that copies to the clipboard when clicked.
   """
   attr :value, :string, default: nil

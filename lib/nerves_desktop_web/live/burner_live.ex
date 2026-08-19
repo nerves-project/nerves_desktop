@@ -248,7 +248,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
       <UI.panel :if={!@fwup_installed?} label="fwup is missing" body_class="p-5">
         <p class="max-w-2xl text-[13px] leading-relaxed">
-          Writing an image needs <code class="rounded-sm bg-sunk px-1 font-mono text-xs">fwup</code>, which is not on
+          Writing an image needs <UI.code text="fwup" />, which is not on
           your PATH. Install it and come back to this page.
         </p>
 

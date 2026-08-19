@@ -150,10 +150,7 @@ defmodule NervesDesktopWeb.HomeLive do
 
         <p class="max-w-3xl text-[13px] leading-relaxed text-muted">
           A device only advertises what it is told to, which by default is not much. Register
-          the service in
-          <code class="rounded-sm bg-primary-soft px-1 font-mono text-xs text-primary">
-            Application.start/2
-          </code>
+          the service in <UI.code text="Application.start/2" />
           and its product, version, and platform fill in here.
         </p>
 
