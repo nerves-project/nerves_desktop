@@ -45,7 +45,22 @@ defmodule NervesDesktopWeb.HomeLive do
 
   @impl true
   def handle_info({:update_progress, device_id, progress}, socket) do
+    if progress.phase == :rebooting do
+      Process.send_after(self(), {:forget_update, device_id}, :timer.minutes(3))
+    end
+
     {:noreply, assign(socket, updates: Map.put(socket.assigns.updates, device_id, progress))}
+  end
+
+  @impl true
+  def handle_info({:forget_update, device_id}, socket) do
+    case socket.assigns.updates[device_id] do
+      %{phase: :rebooting} ->
+        {:noreply, assign(socket, updates: Map.delete(socket.assigns.updates, device_id))}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   # The Tauri file dialog answers with the chosen path.
@@ -137,6 +152,31 @@ defmodule NervesDesktopWeb.HomeLive do
     socket
     |> assign(devices: devices)
     |> assign(firmware_status: ReleaseIndex.statuses(devices))
+    |> retire_finished_updates(devices)
+  end
+
+  # A rebooting device drops off the network and comes back. Watching for that
+  # round trip is what tells us the update landed: a reinstall keeps the same
+  # firmware uuid, so comparing versions would never notice.
+  defp retire_finished_updates(socket, devices) do
+    present = MapSet.new(devices, & &1[:id])
+
+    updates =
+      socket.assigns.updates
+      |> Enum.flat_map(fn
+        {id, %{phase: :rebooting} = progress} ->
+          cond do
+            not MapSet.member?(present, id) -> [{id, Map.put(progress, :left, true)}]
+            Map.get(progress, :left) -> []
+            true -> [{id, progress}]
+          end
+
+        entry ->
+          [entry]
+      end)
+      |> Map.new()
+
+    assign(socket, updates: updates)
   end
 
   defp start_update(socket, device, source, opts \\ []) do
