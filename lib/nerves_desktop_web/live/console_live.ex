@@ -227,7 +227,6 @@ defmodule NervesDesktopWeb.ConsoleLive do
         "\r\n\x1B[1;33mConnecting to #{target} via #{inspect(module)}...\x1B[0m\r\n"
       )
 
-    # Start child if not already running
     ConnectionSupervisor.start_child(module, target: target)
     |> handle_connection_result(socket, module, target)
   end
@@ -255,10 +254,8 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   defp handle_connection_result({:error, {:already_started, pid}}, socket, module, target) do
-    # Already running, just bind
     socket = subscribe_to_target(socket, target)
 
-    # Re-fetch module from Registry to be sure
     module =
       case Registry.lookup(NervesDesktop.ConnectionRegistry, target) do
         [{_, m}] -> m

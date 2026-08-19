@@ -97,8 +97,7 @@ defmodule NervesDesktopWeb.UI do
   attr :devices, :list, required: true
   attr :selected_target, :string, required: true
   attr :password, :string, required: true
-  # :disconnected or other
-  attr :status, :atom, required: true
+  attr :status, :atom, required: true, values: [:connected, :disconnected]
   attr :on_change, :string, default: "validate_connection"
   attr :on_submit, :string, default: "connect"
   attr :on_disconnect, :string, default: "disconnect"
