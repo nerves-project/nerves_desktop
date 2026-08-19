@@ -14,6 +14,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
     {:ok,
      socket
+     |> assign(page_title: "Firmware")
      |> assign(images: FirmwareImages.list())
      |> assign(selected_image: nil)
      |> assign(selected_target_arch: nil)
@@ -234,304 +235,275 @@ defmodule NervesDesktopWeb.BurnerLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:burner}>
-      <UI.page_header
-        icon="hero-fire"
-        title="Firmware Burner"
-        subtitle="Download and flash Nerves firmware to SD cards"
-      />
+      <UI.page_header title="Firmware" subtitle="Write a Nerves image onto an SD card" />
 
-      <%= if !@fwup_installed? do %>
-        <div class="bg-red-50 border-2 border-red-100 rounded-[2rem] p-8 mb-8">
-          <div class="flex items-start gap-4">
-            <div class="p-3 bg-red-100 rounded-2xl text-red-600">
-              <.icon name="hero-exclamation-triangle" class="w-8 h-8" />
-            </div>
-            <div>
-              <h3 class="text-xl font-bold text-red-900 mb-2">Fwup Not Found</h3>
-              <p class="text-red-700 leading-relaxed mb-6">
-                The <code>fwup</code>
-                tool is required to flash Nerves firmware but was not found on your system path.
-              </p>
+      <UI.panel :if={!@fwup_installed?} label="fwup is missing" body_class="p-5">
+        <p class="max-w-2xl text-[13px] leading-relaxed">
+          Writing an image needs <code class="rounded-sm bg-sunk px-1 font-mono text-xs">fwup</code>, which is not on
+          your PATH. Install it and come back to this page.
+        </p>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white/50 p-4 rounded-xl border border-red-200">
-                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">macOS</p>
-                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
-                    brew install fwup
-                  </code>
-                </div>
-                <div class="bg-white/50 p-4 rounded-xl border border-red-200">
-                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">Linux</p>
-                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
-                    sudo apt install fwup
-                  </code>
-                </div>
-                <div class="bg-white/50 p-4 rounded-xl border border-red-200">
-                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">
-                    Windows
-                  </p>
-                  <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
-                    choco install fwup
-                  </code>
-                </div>
-              </div>
-
-              <p class="text-sm text-red-800/80 mb-4">
-                Alternative methods (downloading pre-built executables, building from source, etc.) are also available on GitHub.
-              </p>
-
-              <a
-                href="https://github.com/fwup-home/fwup"
-                phx-hook="TauriOpen"
-                id="fwup-repo-link"
-                class="text-red-900 font-bold underline hover:no-underline"
-              >
-                Visit fwup repository for more instructions &rarr;
-              </a>
-            </div>
+        <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div :for={{os, cmd} <- install_commands()} class="nd-well p-3">
+            <p class="nd-label">{os}</p>
+            <code class="mt-1.5 block font-mono text-xs break-all text-ink">{cmd}</code>
           </div>
         </div>
-      <% end %>
 
-      <div class={"grid grid-cols-1 lg:grid-cols-2 gap-8 #{if !@fwup_installed?, do: "opacity-50 pointer-events-none"}"}>
-        <!-- Selection Section -->
-        <div class="space-y-6">
-          <UI.step_box step={1} title="Select Firmware">
+        <a
+          href="https://github.com/fwup-home/fwup"
+          phx-hook="TauriOpen"
+          id="fwup-repo-link"
+          class="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
+        >
+          Other install methods on GitHub
+          <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
+        </a>
+      </UI.panel>
+
+      <div class={[
+        "grid grid-cols-1 items-start gap-5 xl:grid-cols-2",
+        !@fwup_installed? && "pointer-events-none opacity-40"
+      ]}>
+        <div class="space-y-5">
+          <UI.panel step={1} done={not is_nil(@selected_image)} label="Pick the firmware">
             <:actions>
-              <button
-                phx-click="select_local_firmware"
-                class="btn btn-ghost btn-sm text-primary flex items-center gap-2"
-              >
-                <.icon name="hero-folder-open" class="w-4 h-4" /> Select Local File
+              <button phx-click="select_local_firmware" class="nd-btn nd-btn-ghost h-7">
+                <.icon name="hero-folder-open" class="size-3.5" /> Open file
               </button>
             </:actions>
 
-            <div class="grid grid-cols-1 gap-3">
-              <%= if match?({:local, _}, @selected_image) do %>
-                <div class="p-4 rounded-2xl border-2 border-primary bg-primary/5 flex items-center gap-3">
-                  <.icon name="hero-document-check" class="w-6 h-6 text-primary" />
-                  <div class="flex-1 min-w-0">
-                    <div class="font-bold text-gray-900 truncate">
-                      {Path.basename(elem(@selected_image, 1))}
-                    </div>
-                    <div class="text-xs text-gray-500 truncate">{elem(@selected_image, 1)}</div>
-                  </div>
+            <div class="space-y-2">
+              <div
+                :if={match?({:local, _}, @selected_image)}
+                class="flex items-center gap-2.5 rounded-md border border-primary bg-primary-soft p-3"
+              >
+                <.icon name="hero-document-check" class="size-4 shrink-0 text-primary" />
+                <div class="min-w-0">
+                  <p class="truncate text-[13px] font-semibold">
+                    {Path.basename(elem(@selected_image, 1))}
+                  </p>
+                  <p class="truncate font-mono text-xs text-muted">{elem(@selected_image, 1)}</p>
                 </div>
-              <% end %>
+              </div>
 
-              <%= for {name, config} <- @images do %>
-                <button
-                  phx-click="select_image"
-                  phx-value-name={name}
-                  class={[
-                    "text-left p-4 rounded-2xl border-2 transition-all group",
-                    (match?({^name, _}, @selected_image) && "border-primary bg-primary/5") ||
-                      "border-gray-50 hover:border-primary/30 hover:bg-gray-50"
-                  ]}
-                >
-                  <div class="font-bold text-gray-900 group-hover:text-primary transition-colors">
-                    {name}
-                  </div>
-                  <div class="text-xs text-gray-500 mt-1">{config.description}</div>
-                </button>
-              <% end %>
+              <button
+                :for={{name, config} <- @images}
+                phx-click="select_image"
+                phx-value-name={name}
+                aria-pressed={match?({^name, _}, @selected_image)}
+                class={[
+                  "block w-full rounded-md border p-3 text-left transition-colors",
+                  (match?({^name, _}, @selected_image) && "border-primary bg-primary-soft") ||
+                    "border-rule hover:border-primary hover:bg-sunk"
+                ]}
+              >
+                <span class="text-[13px] font-semibold">{name}</span>
+                <span class="mt-0.5 block text-xs text-muted">{config.description}</span>
+              </button>
             </div>
-          </UI.step_box>
+          </UI.panel>
 
-          <UI.step_box
+          <UI.panel
             step={2}
-            title="Select Hardware Target"
-            class={match?({:local, _}, @selected_image) && "opacity-40 grayscale pointer-events-none"}
+            done={not is_nil(@selected_target_arch) or match?({:local, _}, @selected_image)}
+            label="Pick the board it runs on"
           >
             <%= if is_tuple(@selected_image) and elem(@selected_image, 0) != :local do %>
-              <div class="flex flex-wrap gap-2">
-                <%= for arch <- elem(@selected_image, 1).targets do %>
-                  <button
-                    phx-click="select_target_arch"
-                    phx-value-arch={arch}
-                    class={[
-                      "px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all",
-                      (@selected_target_arch == arch &&
-                         "border-primary bg-primary text-white shadow-md shadow-primary/20") ||
-                        "border-gray-50 bg-gray-50 text-gray-500 hover:border-primary/30"
-                    ]}
-                  >
-                    {arch}
-                  </button>
-                <% end %>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  :for={arch <- elem(@selected_image, 1).targets}
+                  phx-click="select_target_arch"
+                  phx-value-arch={arch}
+                  aria-pressed={@selected_target_arch == arch}
+                  class={[
+                    "nd-btn h-8 font-mono text-xs",
+                    (@selected_target_arch == arch && "nd-btn-primary") || "nd-btn-secondary"
+                  ]}
+                >
+                  {arch}
+                </button>
               </div>
             <% else %>
-              <UI.placeholder>
-                <p>
-                  {if match?({:local, _}, @selected_image),
-                    do: "Target selection not required for local firmware.",
-                    else: "Please select a firmware image in Step 1 first."}
-                </p>
+              <UI.placeholder icon="hero-arrow-up">
+                {if match?({:local, _}, @selected_image),
+                  do: "A file from disk already carries its target.",
+                  else: "Pick the firmware first."}
               </UI.placeholder>
             <% end %>
-          </UI.step_box>
+          </UI.panel>
 
-          <UI.step_box step={3} title="Select Storage Device">
+          <UI.panel step={3} done={not is_nil(@selected_device)} label="Pick the card to write">
             <:actions>
-              <button phx-click="refresh_devices" class="btn btn-ghost btn-sm text-primary">
-                <.icon name="hero-arrow-path" class="w-4 h-4" /> Refresh
+              <button phx-click="refresh_devices" class="nd-btn nd-btn-ghost h-7">
+                <.icon name="hero-arrow-path" class="size-3.5" /> Rescan
               </button>
             </:actions>
 
             <%= if Enum.empty?(@devices) do %>
-              <UI.placeholder>
-                <p>No devices detected. Insert an SD card and refresh.</p>
+              <UI.placeholder icon="hero-inbox">
+                No removable card found. Insert one and rescan.
               </UI.placeholder>
             <% else %>
-              <div class="grid grid-cols-1 gap-3">
-                <%= for device <- @devices do %>
-                  <button
-                    phx-click="select_device"
-                    phx-value-path={device.path}
-                    class={[
-                      "text-left p-4 rounded-2xl border-2 transition-all group",
-                      (@selected_device == device.path && "border-primary bg-primary/5") ||
-                        "border-gray-50 hover:border-primary/30 hover:bg-gray-50"
-                    ]}
-                  >
-                    <div class="font-bold text-gray-900 group-hover:text-primary transition-colors">
-                      {device[:description] || device.path}
-                    </div>
-                    <div class="text-xs font-mono text-gray-400 mt-1">
-                      {device.path} &bull; {format_size(device[:size])}
-                    </div>
-                  </button>
-                <% end %>
+              <div class="space-y-2">
+                <button
+                  :for={device <- @devices}
+                  phx-click="select_device"
+                  phx-value-path={device.path}
+                  aria-pressed={@selected_device == device.path}
+                  class={[
+                    "block w-full rounded-md border p-3 text-left transition-colors",
+                    (@selected_device == device.path && "border-primary bg-primary-soft") ||
+                      "border-rule hover:border-primary hover:bg-sunk"
+                  ]}
+                >
+                  <span class="text-[13px] font-semibold">
+                    {device[:description] || device.path}
+                  </span>
+                  <span class="mt-0.5 block font-mono text-xs text-muted">
+                    {device.path} &middot; {format_size(device[:size])}
+                  </span>
+                </button>
               </div>
             <% end %>
-          </UI.step_box>
+          </UI.panel>
         </div>
-        
-    <!-- Action & Status Section -->
-        <div class="space-y-6">
-          <div class="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col h-full">
-            <h3 class="text-xl font-bold text-gray-900 mb-8">Ready to Burn</h3>
 
-            <div class="space-y-6 flex-1">
-              <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all text-ellipsis overflow-hidden">
-                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                  <.icon name="hero-document-text" class="w-6 h-6 text-gray-400" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-[10px] uppercase font-bold text-gray-400">Firmware</div>
-                  <div class="font-bold text-gray-900 truncate">
-                    <%= case @selected_image do %>
-                      <% {:local, path} -> %>
-                        {Path.basename(path)}
-                      <% {name, _} -> %>
-                        {name}
-                      <% _ -> %>
-                        None Selected
-                    <% end %>
-                    <span
-                      :if={@selected_target_arch}
-                      class="ml-2 text-primary font-mono text-xs bg-primary/10 px-2 py-0.5 rounded-lg shrink-0"
-                    >
-                      {@selected_target_arch}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                  <.icon name="hero-archive-box" class="w-6 h-6 text-gray-400" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-[10px] uppercase font-bold text-gray-400">Storage Device</div>
-                  <div class="font-bold text-gray-900 truncate">
-                    {@selected_device || "None Selected"}
-                  </div>
-                </div>
-              </div>
-              
-    <!-- WiFi Provisioning Form -->
-              <div class="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
-                <h4 class="text-xs font-black uppercase text-gray-400 tracking-widest flex items-center gap-2">
-                  <.icon name="hero-wifi" class="w-4 h-4" /> WiFi Provisioning (Optional)
-                </h4>
-
-                <.form for={@wifi_form} phx-change="update_wifi" class="grid grid-cols-1 gap-2">
-                  <.input
-                    field={@wifi_form[:ssid]}
-                    label="Network SSID"
-                    placeholder="e.g. MyHomeWiFi"
-                    autocomplete="off"
-                  />
-                  <.input
-                    field={@wifi_form[:psk]}
-                    type="password"
-                    label="WiFi Password"
-                    placeholder="••••••••"
-                    autocomplete="off"
-                  />
-                </.form>
-                <p class="text-[10px] text-gray-400 italic">
-                  If provided, these will be baked into the burned firmware.
-                </p>
-              </div>
-
-              <%= if @status != :idle do %>
-                <div class="pt-8">
-                  <div class="flex justify-between items-end mb-2">
-                    <div class="text-sm font-bold text-gray-900">{@message}</div>
-                    <div class="text-xs font-mono text-gray-400">{@progress}%</div>
-                  </div>
-                  <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
-                    <div
-                      class="bg-primary h-full transition-all duration-500 rounded-full shadow-lg shadow-primary/30"
-                      style={"width: #{@progress}%"}
-                    >
-                    </div>
-                  </div>
-                </div>
-              <% end %>
-
-              <%= if @status == :success do %>
-                <div class="mt-4 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 flex items-center gap-3">
-                  <.icon name="hero-check-circle" class="w-6 h-6" />
-                  <div class="text-sm font-bold">
-                    Successfully flashed! You can now eject the storage device.
-                  </div>
-                </div>
-              <% end %>
-
-              <%= if @status == :error do %>
-                <div class="mt-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 flex items-center gap-3">
-                  <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
-                  <div class="text-sm font-bold">{@message}</div>
-                </div>
-              <% end %>
+        <UI.panel
+          label="Check it over"
+          class="xl:sticky xl:top-6"
+          body_class="flex flex-col gap-4 p-4"
+        >
+          <dl class="divide-y divide-rule rounded-md border border-rule">
+            <div class="flex items-baseline gap-3 px-3 py-2.5">
+              <dt class="nd-label w-20 shrink-0">Image</dt>
+              <dd class="min-w-0 flex-1 text-[13px]">
+                <span class={[
+                  "font-semibold",
+                  is_nil(@selected_image) && "font-normal text-faint"
+                ]}>
+                  <%= case @selected_image do %>
+                    <% {:local, path} -> %>
+                      {Path.basename(path)}
+                    <% {name, _} -> %>
+                      {name}
+                    <% _ -> %>
+                      Not chosen
+                  <% end %>
+                </span>
+                <span :if={@selected_target_arch} class="nd-chip nd-chip-signal ml-1.5">
+                  {@selected_target_arch}
+                </span>
+              </dd>
             </div>
 
-            <div class="mt-12">
-              <button
-                phx-click="burn"
-                disabled={
-                  !@fwup_installed? or is_nil(@selected_image) or is_nil(@selected_device) or
-                    @status in [:downloading, :burning]
-                }
-                class="btn btn-primary w-full h-16 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none transition-all hover:scale-[1.01] active:scale-[0.99]"
+            <div class="flex items-baseline gap-3 px-3 py-2.5">
+              <dt class="nd-label w-20 shrink-0">Card</dt>
+              <dd class={[
+                "min-w-0 flex-1 truncate font-mono text-[13px]",
+                (@selected_device && "font-medium") || "text-faint"
+              ]}>
+                {@selected_device || "Not chosen"}
+              </dd>
+            </div>
+          </dl>
+
+          <div class="nd-well p-3">
+            <p class="nd-legend mb-3">
+              <span>Wi-Fi, if the board needs it</span>
+            </p>
+
+            <.form for={@wifi_form} id="wifi-form" phx-change="update_wifi" class="grid gap-2.5">
+              <.input
+                field={@wifi_form[:ssid]}
+                label="Network name"
+                placeholder="MyHomeWiFi"
+                autocomplete="off"
+              />
+              <.input
+                field={@wifi_form[:psk]}
+                type="password"
+                label="Network password"
+                placeholder="Leave blank for an open network"
+                autocomplete="off"
+              />
+            </.form>
+            <p class="mt-2 text-xs text-muted">
+              Written into the image in the clear, so anyone holding the card can read them.
+            </p>
+          </div>
+
+          <div :if={@status != :idle} aria-live="polite">
+            <div class="mb-1.5 flex items-baseline justify-between gap-3">
+              <span class="text-[13px] font-semibold">{@message}</span>
+              <span class="font-mono text-xs text-muted">{@progress}%</span>
+            </div>
+            <div
+              class="h-1.5 overflow-hidden rounded-full bg-rule"
+              role="progressbar"
+              aria-valuenow={@progress}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div
+                class="h-full rounded-full bg-secondary shadow-[0_0_8px_0_var(--color-secondary)] transition-[width] duration-500"
+                style={"width: #{@progress}%"}
               >
-                <%= if @status in [:downloading, :burning] do %>
-                  <span class="loading loading-spinner"></span> Processing...
-                <% else %>
-                  <.icon name="hero-fire" class="w-6 h-6" /> START BURNING
-                <% end %>
-              </button>
-              <p class="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-widest font-bold">
-                WARNING: ALL DATA ON THE STORAGE DEVICE WILL BE ERASED
-              </p>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div :if={@status == :success} class="nd-note nd-note-live">
+            <.icon name="hero-check-circle" class="mt-px size-4 shrink-0 text-live" />
+            <span>Done. You can eject the card.</span>
+          </div>
+
+          <div :if={@status == :error} class="nd-note nd-note-danger">
+            <.icon name="hero-exclamation-triangle" class="mt-px size-4 shrink-0 text-danger" />
+            <span>{@message}</span>
+          </div>
+
+          <div class="mt-auto space-y-3 border-t border-rule pt-4">
+            <div class="nd-note nd-note-danger">
+              <.icon name="hero-exclamation-triangle" class="mt-px size-4 shrink-0 text-danger" />
+              <span :if={@selected_device}>
+                Flashing to <span class="font-mono font-semibold">{@selected_device}</span>
+                erases the card. Everything already on it will be lost.
+              </span>
+              <span :if={is_nil(@selected_device)}>
+                Flashing erases the card you choose. Everything already on it will be lost.
+              </span>
+            </div>
+
+            <button
+              phx-click="burn"
+              disabled={
+                !@fwup_installed? or is_nil(@selected_image) or is_nil(@selected_device) or
+                  writing?(@status)
+              }
+              class="nd-btn nd-btn-danger nd-btn-lg w-full"
+            >
+              <%= if writing?(@status) do %>
+                <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" /> Writing…
+              <% else %>
+                <.icon name="hero-bolt" class="size-4" /> Erase card and write firmware
+              <% end %>
+            </button>
+          </div>
+        </UI.panel>
       </div>
     </Layouts.app>
     """
+  end
+
+  @doc false
+  def writing?(status), do: status in [:downloading, :burning]
+
+  defp install_commands do
+    [
+      {"macOS", "brew install fwup"},
+      {"Linux", "sudo apt install fwup"},
+      {"Windows", "choco install fwup"}
+    ]
   end
 end

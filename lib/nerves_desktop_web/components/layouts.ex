@@ -20,62 +20,48 @@ defmodule NervesDesktopWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="flex h-screen bg-base-200/50 overflow-hidden">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shadow-xl shadow-gray-200/50 z-20 transition-all duration-300 group">
-        <div class="p-6">
-          <a href="/" class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <img src={~p"/images/nerves_landscape.svg"} class="h-10 w-auto" alt="Nerves" />
+    <div class="flex h-screen overflow-hidden bg-ground">
+      <aside class="z-20 flex w-[13.5rem] shrink-0 flex-col bg-chassis">
+        <div class="px-5 py-5">
+          <a href="/" class="block w-fit rounded-sm">
+            <img
+              src={~p"/images/nerves_landscape_inverse.svg"}
+              class="h-6 w-auto"
+              alt="Nerves Desktop"
+            />
           </a>
         </div>
 
-        <nav class="flex-1 px-4 space-y-2 mt-4">
-          <UI.nav_link href={~p"/"} icon="hero-list-bullet" active={@active_tab == :devices}>
+        <nav class="flex-1 space-y-0.5 px-3" aria-label="Main">
+          <UI.nav_link href={~p"/"} icon="hero-cpu-chip" active={@active_tab == :devices}>
             Devices
           </UI.nav_link>
           <UI.nav_link href={~p"/console"} icon="hero-command-line" active={@active_tab == :console}>
-            Device Console
+            Console
           </UI.nav_link>
-          <UI.nav_link href={~p"/burner"} icon="hero-fire" active={@active_tab == :burner}>
-            Firmware Burner
+          <UI.nav_link href={~p"/burner"} icon="hero-bolt" active={@active_tab == :burner}>
+            Firmware
           </UI.nav_link>
           <UI.nav_link href={~p"/resources"} icon="hero-book-open" active={@active_tab == :resources}>
-            Nerves Resources
+            Resources
+          </UI.nav_link>
+          <UI.nav_link href={~p"/settings"} icon="hero-cog-6-tooth" active={@active_tab == :settings}>
+            Settings
           </UI.nav_link>
         </nav>
 
-        <div class="p-4 border-t border-gray-50 overflow-hidden">
-          <div class="flex items-center gap-3 pl-3 py-2 bg-gray-50 rounded-2xl border border-gray-100 whitespace-nowrap relative group/settings">
-            <div class="w-8 h-8 shrink-0">
-              <img src={~p"/images/nerves_icon.svg"} class="w-full h-full" alt="ND" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-bold text-gray-900 truncate">Nerves Desktop</p>
-              <p class="text-[10px] text-gray-400 truncate">
-                v{Application.spec(:nerves_desktop, :vsn)}
-              </p>
-            </div>
-            <.link
-              href={~p"/settings"}
-              class={[
-                "p-2 rounded-xl transition-all hover:text-primary",
-                @active_tab == :settings && "text-primary",
-                @active_tab != :settings && "text-gray-400"
-              ]}
-            >
-              <.icon name="hero-cog-6-tooth" class="size-6" />
-            </.link>
-          </div>
+        <div class="border-t border-chassis-line/60 px-5 py-3">
+          <p class="text-xs font-medium text-white">Nerves Desktop</p>
+          <p class="mt-0.5 font-mono text-2xs text-chassis-text">
+            v{Application.spec(:nerves_desktop, :vsn)}
+          </p>
         </div>
       </aside>
-      
-    <!-- Main Content -->
-      <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div class="flex-1 overflow-y-auto relative p-4 md:p-8 flex flex-col">
-          <.flash_group flash={@flash} />
-          <div class="flex-1 flex flex-col space-y-8 w-full">
-            {render_slot(@inner_block)}
-          </div>
+
+      <main class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <.flash_group flash={@flash} />
+        <div class="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6 lg:px-8">
+          {render_slot(@inner_block)}
         </div>
       </main>
     </div>
@@ -90,32 +76,34 @@ defmodule NervesDesktopWeb.Layouts do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id} aria-live="polite" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+    <div
+      id={@id}
+      aria-live="polite"
+      class="pointer-events-none fixed top-4 right-4 z-50 flex w-80 flex-col gap-2"
+    >
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
       <.flash
         id="client-error"
         kind={:error}
-        title="We can't find the internet"
+        title="Lost connection to the app"
         phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
         phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+        Reconnecting <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
 
       <.flash
         id="server-error"
         kind={:error}
-        title="Something went wrong!"
+        title="The app stopped responding"
         phx-disconnected={show(".phx-server-error #server-error") |> JS.remove_attribute("hidden")}
         phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+        Reconnecting <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
     </div>
     """

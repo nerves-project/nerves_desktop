@@ -4,7 +4,7 @@ defmodule NervesDesktopWeb.SettingsLive do
   @impl true
   def mount(_params, _session, socket) do
     ssh_client = Application.get_env(:nerves_desktop, :ssh_client, :erlang_ssh)
-    {:ok, assign(socket, ssh_client: ssh_client)}
+    {:ok, assign(socket, page_title: "Settings", ssh_client: ssh_client)}
   end
 
   @impl true
@@ -18,82 +18,82 @@ defmodule NervesDesktopWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:settings}>
-      <UI.page_header
-        icon="hero-cog-6-tooth"
-        title="Settings"
-        subtitle="Configure Nerves Desktop settings"
-      />
+      <UI.page_header title="Settings" subtitle="How this app opens a shell on your boards" />
 
-      <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
-        <div class="max-w-2xl mx-auto">
-          <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <.icon name="hero-command-line" class="w-6 h-6 text-primary" /> Connection Settings
-          </h3>
+      <div>
+        <UI.panel label="Which SSH client to use">
+          <.form for={%{}} id="settings-form" phx-change="save_settings">
+            <fieldset class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <legend class="sr-only">SSH client</legend>
 
-          <.form for={%{}} phx-change="save_settings" class="space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <label class="group cursor-pointer">
+              <label
+                :for={option <- ssh_clients()}
+                class="group relative cursor-pointer rounded-md border border-rule bg-panel p-4 transition-colors has-checked:border-primary has-checked:bg-primary-soft hover:border-rule-strong has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-secondary"
+              >
                 <input
                   type="radio"
                   name="ssh_client"
-                  value="system_ssh"
-                  checked={@ssh_client == :system_ssh}
-                  class="peer hidden"
+                  value={option.value}
+                  checked={@ssh_client == option.key}
+                  class="sr-only"
                 />
-                <div class="p-6 rounded-2xl border-2 border-gray-100 transition-all peer-checked:border-primary peer-checked:bg-primary/[0.02] group-hover:border-gray-200 h-full">
-                  <div class="flex items-center gap-4 mb-4">
-                    <div class="p-3 bg-gray-50 rounded-xl group-hover:bg-white transition-colors">
-                      <.icon name="hero-cpu-chip" class="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div>
-                      <h4 class="font-bold text-gray-900">System SSH</h4>
-                      <p class="text-xs text-gray-500">Uses your host's SSH binary</p>
-                    </div>
-                  </div>
-                  <p class="text-sm text-gray-500 leading-relaxed">
-                    Uses the <code class="bg-gray-100 px-1 rounded">ssh</code>
-                    command on your system. Best compatibility with local SSH keys and configurations.
-                  </p>
-                </div>
-              </label>
+                <span class="flex min-h-7 items-center gap-2">
+                  <span class="font-display text-[15px] font-semibold">{option.title}</span>
+                  <span :if={@ssh_client == option.key} class="nd-chip nd-chip-live ml-auto">
+                    <span class="nd-led"></span> In use
+                  </span>
+                </span>
+                <span class="mt-1 block min-h-[2.75rem] text-[13px] leading-relaxed text-muted">
+                  {option.description}
+                </span>
 
-              <label class="group cursor-pointer">
-                <input
-                  type="radio"
-                  name="ssh_client"
-                  value="erlang_ssh"
-                  checked={@ssh_client == :erlang_ssh}
-                  class="peer hidden"
-                />
-                <div class="p-6 rounded-2xl border-2 border-gray-100 transition-all peer-checked:border-primary peer-checked:bg-primary/[0.02] group-hover:border-gray-200 h-full">
-                  <div class="flex items-center gap-4 mb-4">
-                    <div class="p-3 bg-gray-50 rounded-xl group-hover:bg-white transition-colors">
-                      <.icon name="hero-beaker" class="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div>
-                      <h4 class="font-bold text-gray-900">Erlang SSH</h4>
-                      <p class="text-xs text-gray-500">Native Elixir implementation</p>
-                    </div>
+                <dl class="mt-3 space-y-1.5 border-t border-rule pt-3">
+                  <div :for={{term, value} <- option.traits} class="flex gap-2 text-xs">
+                    <dt class="w-24 shrink-0 text-muted">{term}</dt>
+                    <dd class="font-medium">{value}</dd>
                   </div>
-                  <p class="text-sm text-gray-500 leading-relaxed">
-                    Uses the built-in Erlang SSH application. Faster and doesn't depend on external tools.
-                  </p>
-                </div>
+                </dl>
               </label>
-            </div>
+            </fieldset>
           </.form>
 
-          <div class="mt-12 pt-8 border-t border-gray-50">
-            <div class="flex items-center gap-4 text-gray-400">
-              <.icon name="hero-information-circle" class="w-5 h-5" />
-              <p class="text-sm">
-                Settings are saved in memory for the current session and will be lost on application restart.
-              </p>
-            </div>
-          </div>
-        </div>
+          <p class="nd-note nd-note-info mt-4">
+            <.icon name="hero-information-circle" class="mt-px size-4 shrink-0 text-primary" />
+            <span>
+              Takes effect on the next connection. It is held in memory, so it goes back to
+              Erlang SSH when the app restarts.
+            </span>
+          </p>
+        </UI.panel>
       </div>
     </Layouts.app>
     """
+  end
+
+  defp ssh_clients do
+    [
+      %{
+        key: :system_ssh,
+        value: "system_ssh",
+        title: "System SSH",
+        description: "Shells out to the ssh binary already installed on this machine.",
+        traits: [
+          {"Your keys", "Yes, via ~/.ssh/config"},
+          {"Console size", "Fixed at 80x24"},
+          {"Needs", "ssh on your PATH"}
+        ]
+      },
+      %{
+        key: :erlang_ssh,
+        value: "erlang_ssh",
+        title: "Erlang SSH",
+        description: "Uses the SSH client that ships inside Erlang itself.",
+        traits: [
+          {"Your keys", "Password only"},
+          {"Console size", "Follows the window"},
+          {"Needs", "Nothing else"}
+        ]
+      }
+    ]
   end
 end

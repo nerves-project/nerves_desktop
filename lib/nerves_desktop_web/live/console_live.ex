@@ -4,7 +4,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
   require Logger
   alias NervesDesktop.Connection
   alias NervesDesktop.ConnectionSupervisor
-  alias NervesDesktop.Connections.{SystemSSH, UART}
+  alias NervesDesktop.Connections.{ErlangSSH, SystemSSH, UART}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,6 +14,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
     {:ok,
      socket
+     |> assign(page_title: "Console")
      |> assign(devices: NervesDesktop.DeviceScanner.get_devices())
      |> assign(connection_pid: nil)
      |> assign(connection_module: nil)
@@ -221,6 +222,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
     {:noreply, socket}
   end
 
+  defp backend_name(ErlangSSH), do: "Erlang SSH"
+  defp backend_name(SystemSSH), do: "System SSH"
+  defp backend_name(UART), do: "Serial"
+  defp backend_name(module), do: module |> Module.split() |> List.last()
+
   defp validate_target(nil), do: {:error, :no_target}
   defp validate_target(""), do: {:error, :no_target}
   defp validate_target(target), do: {:ok, target}
@@ -301,93 +307,94 @@ defmodule NervesDesktopWeb.ConsoleLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} active_tab={:console}>
-      <UI.page_header
-        icon="hero-command-line"
-        title="Device Console"
-        subtitle="Interactive terminal via SSH or UART"
-      >
+      <UI.page_header title="Console" subtitle="A live shell on the board, over SSH or serial">
         <:actions>
-          <UI.ssh_connection_form
-            devices={@devices}
-            selected_target={@selected_target}
-            password={@password}
-            status={@status}
-          />
+          <span :if={@status == :connected} class="nd-chip nd-chip-live">
+            <span class="nd-led"></span> Session open
+          </span>
+          <span :if={@status != :connected} class="nd-chip">
+            <span class="nd-led opacity-40"></span> No session
+          </span>
         </:actions>
       </UI.page_header>
 
-      <div
-        :if={@status == :connected && @connection_module != UART}
-        class="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-800 text-xs"
-      >
-        <.icon name="hero-exclamation-triangle" class="w-4 h-4 text-yellow-600" />
-        <span>
-          Host key verification is disabled for this session. Connect only to trusted devices on secure networks.
-        </span>
-      </div>
+      <UI.panel label="Open a session" body_class="p-4">
+        <UI.ssh_connection_form
+          devices={@devices}
+          selected_target={@selected_target}
+          password={@password}
+          status={@status}
+        />
 
-      <div
-        :if={@status == :connected && @connection_module == SystemSSH}
-        class="mb-4 flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl text-blue-800 text-xs"
-      >
-        <.icon name="hero-information-circle" class="w-4 h-4 text-blue-600" />
-        <span>
-          System SSH runs a fixed 80x24 terminal. Switch to Erlang SSH in Settings for a resizable console.
-        </span>
-      </div>
+        <div
+          :if={@status == :connected && @connection_module != UART}
+          class="nd-note nd-note-caution mt-4"
+        >
+          <.icon name="hero-shield-exclamation" class="mt-px size-4 shrink-0 text-caution" />
+          <span>
+            This session skips host key verification, so it cannot tell you if something
+            else answered instead of your board. Use it on networks you control.
+          </span>
+        </div>
 
-      <div class="flex-1 flex flex-col min-h-0">
-        <div class="bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-800 flex-1">
-          <!-- Terminal Header -->
-          <div class="bg-gray-800/50 px-6 py-4 flex items-center justify-between border-b border-gray-700/50">
-            <div class="flex items-center gap-4">
-              <div class="flex gap-2">
-                <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-                <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
-              </div>
-              <div class="h-4 w-px bg-gray-700"></div>
-              <div class="text-xs font-mono text-gray-400 flex items-center gap-2">
-                <.icon name="hero-server" class="w-3 h-3" />
-                {@selected_name || "no-session"} — {@selected_target || "localhost"}
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div
-                :if={@status == :connected}
-                class="flex items-center gap-2 text-xs text-green-500 font-bold uppercase tracking-widest"
+        <div
+          :if={@status == :connected && @connection_module == SystemSSH}
+          class="nd-note nd-note-info mt-3"
+        >
+          <.icon name="hero-information-circle" class="mt-px size-4 shrink-0 text-primary" />
+          <span>
+            System SSH holds the terminal at 80&times;24 no matter how large this window
+            gets. Switch to Erlang SSH in
+            <.link navigate={~p"/settings"} class="font-semibold text-primary underline">
+              Settings
+            </.link>
+            for a console that follows the window.
+          </span>
+        </div>
+      </UI.panel>
+
+      <div class="flex min-h-0 flex-1 flex-col">
+        <section class="flex flex-1 flex-col overflow-hidden rounded-lg border border-ink bg-ink shadow-panel">
+          <div class="flex items-center gap-3 border-b border-white/10 bg-chassis-deep px-4 py-2.5">
+            <span class={[
+              "size-2 shrink-0 rounded-full transition-colors",
+              (@status == :connected &&
+                 "bg-live shadow-[0_0_7px_0_var(--color-live)] motion-safe:animate-pulse") ||
+                "bg-white/25"
+            ]}>
+            </span>
+            <span class={[
+              "truncate font-mono text-xs",
+              (@selected_target && "text-secondary") || "text-white/60"
+            ]}>
+              {@selected_name || "Nothing selected"}
+            </span>
+            <span :if={@selected_target} class="truncate font-mono text-xs text-white/60">
+              {@selected_target}
+            </span>
+
+            <span class="ml-auto flex shrink-0 items-center gap-3">
+              <span
+                :if={@connection_module}
+                class="font-mono text-2xs tracking-wider text-white/60 uppercase"
               >
-                <span>Online</span>
-                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-              </div>
+                {backend_name(@connection_module)}
+              </span>
               <button
                 type="button"
                 id="clear-terminal"
                 phx-click="clear_terminal"
-                class="rounded-lg px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-gray-500 transition-colors hover:bg-gray-700/40 hover:text-gray-200 focus-visible:ring-1 focus-visible:ring-gray-500 focus-visible:outline-none"
+                class="rounded-sm px-2 py-1 font-mono text-2xs tracking-wider text-white/70 uppercase transition-colors hover:bg-white/10 hover:text-white"
               >
                 Clear
               </button>
-            </div>
+            </span>
           </div>
-          
-    <!-- Terminal Content -->
-          <div class="flex-1 p-4 overflow-hidden bg-gray-900">
+
+          <div class="flex-1 overflow-hidden p-3">
             <div id="terminal" phx-update="ignore" phx-hook="Xterm" class="h-full w-full"></div>
           </div>
-          
-    <!-- Terminal Footer -->
-          <div class="bg-gray-800/30 px-6 py-3 border-t border-gray-700/50 flex justify-between items-center">
-            <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest text-ellipsis overflow-hidden whitespace-nowrap">
-              Interactive PTY Mode — {if @connection_module,
-                do: inspect(@connection_module),
-                else: "Not Connected"}
-            </div>
-            <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest hidden sm:block">
-              UTF-8 / PTY
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </Layouts.app>
     """
