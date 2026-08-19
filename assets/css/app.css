@@ -1,54 +1,117 @@
-/* See the Tailwind configuration guide for advanced usage
-   https://tailwindcss.com/docs/configuration */
-
 @import "tailwindcss" source(none);
+@import "../vendor/xterm/xterm.css";
 @source "../css";
 @source "../js";
 @source "../../lib/nerves_desktop_web";
 
-/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
-   The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
 
-/* daisyUI Tailwind Plugin. */
-@plugin "../vendor/daisyui" {
-  themes: false;
+/* ==========================================================================
+   Typefaces — vendored so the desktop app renders identically offline.
+   See priv/static/fonts/README.md for licensing.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-var.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* daisyUI theme plugin. */
-@plugin "../vendor/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(99% 0 0);
-  --color-base-200: oklch(97% 0.001 286.375);
-  --color-base-300: oklch(94% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(0.6823 0.1024 221.74);
-  --color-primary-content: oklch(98% 0.01 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.5rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans-var.woff2") format("woff2");
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   Design tokens
+   ========================================================================== */
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Archivo", "IBM Plex Sans", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* The two Nerves logo blues, unchanged. Deep carries text and fills because
+     it clears WCAG AA on white (6.4:1); bright is the signal colour and never
+     sits under body text on paper (2.8:1). */
+  --color-primary: #33647e;
+  --color-primary-strong: #27505f;
+  --color-primary-soft: #e9f0f4;
+  --color-secondary: #42a7c6;
+  --color-secondary-soft: #e3f2f8;
+
+  /* The instrument has two sides. Chassis is the frame you hold; ink is the
+     device talking back. Paper is your own workstation. */
+  --color-chassis: #1e4256;
+  --color-chassis-deep: #16323f;
+  --color-chassis-line: #345c70;
+  --color-chassis-text: #a6c2ce;
+  --color-ink: #0f2a36;
+
+  /* Three text tones, each clearing WCAG AA on white: 16.6:1, 6.1:1, 4.6:1. */
+  --color-muted: #4a6672;
+  --color-faint: #5e7b88;
+
+  --color-ground: #edf1f4;
+  --color-panel: #ffffff;
+  --color-sunk: #f4f8f9;
+  --color-rule: #d5e0e5;
+  --color-rule-strong: #b8cad3;
+
+  /* Status reads the way a board reads: a lit link, a serial line, a fault.
+     Every one of these is also carried by a label, never by hue alone. */
+  --color-live: #0c6b52;
+  --color-live-soft: #e0f2ec;
+  --color-live-line: #a9dcca;
+  --color-serial: #a35a00;
+  --color-serial-soft: #fbeedb;
+  --color-serial-line: #ecd0a4;
+  --color-caution: #8a5300;
+  --color-caution-soft: #fdf1de;
+  --color-caution-line: #eed7b0;
+  --color-danger: #b32432;
+  --color-danger-soft: #fdeaec;
+  --color-danger-line: #f0c3c8;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.1;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-panel: 0 1px 2px rgb(15 42 54 / 0.05);
+  --shadow-pop: 0 12px 28px -12px rgb(15 42 54 / 0.28);
 }
 
 /* Add variants based on LiveView classes */
@@ -57,7 +120,483 @@
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
 /* Make LiveView wrapper divs transparent for layout */
-[data-phx-session], [data-phx-teleported-src] { display: contents }
+[data-phx-session],
+[data-phx-teleported-src] {
+  display: contents;
+}
 
-/* This file is for your main application CSS */
-@import "../vendor/xterm/xterm.css";
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Archivo carries a width axis. Running headings slightly expanded gives them
+     the stance of lettering stamped on a panel rather than set in a document. */
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    color: var(--color-ink);
+    letter-spacing: -0.005em;
+  }
+
+  /* One focus treatment for the whole app. */
+  :focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background-color: var(--color-secondary-soft);
+    color: var(--color-ink);
+  }
+
+  /* Slim scrollbars so panels keep their measure. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-rule-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-rule-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+
+@layer components {
+  /* Field and column labels. Plain sans in sentence case: the mono face is
+     reserved for values you actually read as data. */
+  .nd-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  /* A panel's title sits on the rule that bounds it, and the rule runs to the
+     panel edge. Display face and the deep brand blue keep it from reading as
+     the first line of the body. */
+  .nd-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--color-primary);
+  }
+
+  .nd-legend::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: var(--color-rule);
+  }
+
+  /* --- Panels --- */
+
+  .nd-panel {
+    background-color: var(--color-panel);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .nd-well {
+    background-color: var(--color-sunk);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+  }
+
+  /* --- Buttons --- */
+
+  .nd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.125rem;
+    padding-inline: 0.875rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .nd-btn:disabled {
+    cursor: not-allowed;
+    background-color: var(--color-sunk);
+    border-color: var(--color-rule);
+    color: var(--color-muted);
+  }
+
+  .nd-btn-primary {
+    background-color: var(--color-primary);
+    color: #fff;
+  }
+
+  .nd-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-strong);
+  }
+
+  .nd-btn-secondary {
+    background-color: var(--color-panel);
+    border-color: var(--color-rule-strong);
+    color: var(--color-ink);
+  }
+
+  .nd-btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-sunk);
+    border-color: var(--color-primary);
+  }
+
+  .nd-btn-ghost {
+    background-color: transparent;
+    color: var(--color-primary);
+    padding-inline: 0.5rem;
+  }
+
+  .nd-btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-primary-soft);
+  }
+
+  .nd-btn-danger {
+    background-color: var(--color-danger);
+    color: #fff;
+  }
+
+  .nd-btn-danger:hover:not(:disabled) {
+    background-color: #8f1c28;
+  }
+
+  .nd-btn-lg {
+    height: 2.75rem;
+    padding-inline: 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  /* --- Form controls --- */
+
+  .nd-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3125rem;
+  }
+
+  .nd-control {
+    width: 100%;
+    height: 2.125rem;
+    padding-inline: 0.625rem;
+    background-color: var(--color-panel);
+    border: 1px solid var(--color-rule-strong);
+    border-radius: var(--radius-md);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .nd-control::placeholder {
+    color: var(--color-faint);
+  }
+
+  .nd-control:hover:not(:disabled) {
+    border-color: var(--color-primary);
+  }
+
+  .nd-control:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px var(--color-secondary-soft);
+  }
+
+  .nd-control:disabled {
+    background-color: var(--color-sunk);
+    color: var(--color-muted);
+    cursor: not-allowed;
+  }
+
+  .nd-control-error {
+    border-color: var(--color-danger);
+  }
+
+  textarea.nd-control {
+    height: auto;
+    padding-block: 0.5rem;
+    line-height: 1.5;
+  }
+
+  select.nd-control {
+    appearance: none;
+    padding-right: 1.75rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%234a6672' stroke-width='1.6' stroke-linecap='round'><path d='M4 6.5 8 10.5 12 6.5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+  }
+
+  .nd-checkbox {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--color-primary);
+  }
+
+  /* --- Notes: inline messages that share one anatomy across all severities.
+     The rule on the leading edge carries the severity, so the body text
+     stays at full contrast instead of being tinted into illegibility. --- */
+
+  .nd-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background-color: var(--color-sunk);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+
+  .nd-note-info {
+    background-color: var(--color-primary-soft);
+    border-color: #cddce4;
+  }
+
+  .nd-note-caution {
+    background-color: var(--color-caution-soft);
+    border-color: var(--color-caution-line);
+  }
+
+  .nd-note-danger {
+    background-color: var(--color-danger-soft);
+    border-color: var(--color-danger-line);
+  }
+
+  .nd-note-live {
+    background-color: var(--color-live-soft);
+    border-color: var(--color-live-line);
+  }
+
+  /* --- Navigation --- */
+
+  .nd-nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    height: 2.25rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-chassis-text);
+    transition:
+      background-color 140ms ease,
+      color 140ms ease;
+  }
+
+  .nd-nav-link:hover {
+    background-color: color-mix(in srgb, #fff 8%, transparent);
+    color: #fff;
+  }
+
+  /* The current tab lights up rather than filling in: the bright brand blue
+     reads as a powered contact against the chassis. */
+  .nd-nav-link-active,
+  .nd-nav-link-active:hover {
+    background-color: color-mix(in srgb, var(--color-secondary) 16%, transparent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .nd-nav-link-active .nd-nav-icon {
+    color: var(--color-secondary);
+  }
+
+  .nd-nav-link-active::before {
+    content: "";
+    position: absolute;
+    left: -0.5rem;
+    top: 0.3125rem;
+    bottom: 0.3125rem;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background-color: var(--color-secondary);
+    box-shadow: 0 0 8px 0 color-mix(in srgb, var(--color-secondary) 70%, transparent);
+  }
+
+  /* --- Chips --- */
+
+  .nd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1.375rem;
+    padding-inline: 0.5rem;
+    border-radius: 999px;
+    background-color: var(--color-sunk);
+    border: 1px solid var(--color-rule);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  .nd-chip-live {
+    background-color: var(--color-live-soft);
+    border-color: var(--color-live-line);
+    color: var(--color-live);
+  }
+
+  .nd-chip-serial {
+    background-color: var(--color-serial-soft);
+    border-color: var(--color-serial-line);
+    color: var(--color-serial);
+  }
+
+  .nd-chip-signal {
+    background-color: var(--color-secondary-soft);
+    border-color: #b3dceb;
+    color: var(--color-primary);
+  }
+
+  .nd-chip-danger {
+    background-color: var(--color-danger-soft);
+    border-color: var(--color-danger-line);
+    color: var(--color-danger);
+  }
+
+  /* The lit dot inside a chip, sized like a board indicator. */
+  .nd-led {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background-color: currentColor;
+    box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
+  }
+
+  /* --- Code samples ---
+     Token hues are spaced by lightness as well as by hue, and each clears AA
+     on the sunk surface these samples sit on. --- */
+
+  .nd-code {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.7;
+    color: var(--color-ink);
+    tab-size: 2;
+  }
+
+  .nd-code .tok-mod {
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+
+  .nd-code .tok-fun {
+    color: #6d4aa8;
+  }
+
+  .nd-code .tok-atom,
+  .nd-code .tok-key {
+    color: var(--color-serial);
+  }
+
+  .nd-code .tok-str {
+    color: var(--color-live);
+  }
+
+  .nd-code .tok-num {
+    color: var(--color-danger);
+  }
+
+  .nd-code .tok-kw {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .nd-code .tok-comment {
+    color: var(--color-faint);
+    font-style: italic;
+  }
+
+  /* Interpolation delimiters are punctuation, not part of the string. */
+  .nd-code .tok-interp {
+    color: var(--color-muted);
+  }
+
+  /* --- Copyable values --- */
+
+  .nd-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-inline-start: -0.25rem;
+    padding: 0.0625rem 0.25rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .nd-copy:hover {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+}

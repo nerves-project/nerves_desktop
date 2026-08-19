@@ -35,19 +35,30 @@ let Hooks = {
       this.term = new Terminal({
         cursorBlink: true,
         fontSize: 14,
-        fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        fontFamily: '"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        // Matches the --color-ink surface and Nerves blues in app.css.
         theme: {
-          background: '#111827', // gray-900
-          foreground: '#e5e7eb', // gray-200
-          cursor: '#f3f4f6',
-          black: '#000000',
-          red: '#ef4444',
-          green: '#10b981',
-          yellow: '#f59e0b',
-          blue: '#3b82f6',
-          magenta: '#8b5cf6',
-          cyan: '#06b6d4',
-          white: '#ffffff',
+          background: '#0f2a36',
+          foreground: '#dfe9ed',
+          cursor: '#42a7c6',
+          cursorAccent: '#0f2a36',
+          selectionBackground: '#33647e',
+          black: '#0f2a36',
+          red: '#e4707c',
+          green: '#4fc79f',
+          yellow: '#e0a458',
+          blue: '#42a7c6',
+          magenta: '#b491d9',
+          cyan: '#6fd0dd',
+          white: '#dfe9ed',
+          brightBlack: '#587886',
+          brightRed: '#f28d97',
+          brightGreen: '#6fdcb7',
+          brightYellow: '#f0bd77',
+          brightBlue: '#6cc4dd',
+          brightMagenta: '#c9aae8',
+          brightCyan: '#8fe2ee',
+          brightWhite: '#ffffff',
         }
       })
 
