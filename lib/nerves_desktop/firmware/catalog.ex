@@ -37,12 +37,13 @@ defmodule NervesDesktop.Firmware.Catalog do
   @spec updatable?(map()) :: boolean()
   def updatable?(device), do: match(device) != :no_match
 
-  # The published builds of these images ship a known login and authorize no
-  # developer key, so the password is a property of the image rather than
-  # something to ask for. An image not listed here gets no guess.
+  # The published builds ship a documented password and authorize no developer
+  # key, so it is a property of the image rather than something to ask for.
+  # nerves_ssh accepts any username alongside it, so these all log in as root.
   @default_passwords %{
     "circuits_quickstart" => "circuits",
-    "nerves_livebook" => "nerves"
+    "nerves_livebook" => "nerves",
+    "kiosk_demo" => "kiosk"
   }
 
   @doc """
@@ -50,6 +51,18 @@ defmodule NervesDesktop.Firmware.Catalog do
   """
   @spec default_password(config()) :: binary() | nil
   def default_password(config), do: Map.get(@default_passwords, Path.basename(config.repo))
+
+  @doc """
+  The documented password for whatever image a device reports running.
+
+  Unlike `match/1` this ignores the board and the transport, because the
+  password belongs to the image rather than to any particular build of it.
+  """
+  @spec password_for(map() | nil) :: binary() | nil
+  def password_for(%{product: product}) when is_binary(product),
+    do: Map.get(@default_passwords, product)
+
+  def password_for(_device), do: nil
 
   @doc """
   The name of the `.fw` release asset for a target.
