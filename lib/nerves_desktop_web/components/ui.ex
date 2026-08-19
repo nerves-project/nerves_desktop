@@ -208,6 +208,52 @@ defmodule NervesDesktopWeb.UI do
   end
 
   @doc """
+  Renders a dropdown menu.
+
+  Open state lives on the server so a re-render cannot close the menu under the
+  cursor; the hook only positions the panel once it exists.
+  """
+  attr :id, :string, required: true
+  attr :open, :boolean, default: false
+  attr :label, :string, default: "Actions"
+  attr :on_toggle, :string, default: "toggle_menu"
+  attr :on_close, :string, default: "close_menu"
+  slot :inner_block, required: true
+
+  def menu(assigns) do
+    ~H"""
+    <div class="inline-flex">
+      <button
+        type="button"
+        id={"#{@id}-trigger"}
+        phx-click={@on_toggle}
+        phx-value-id={@id}
+        aria-haspopup="menu"
+        aria-expanded={to_string(@open)}
+        aria-label={@label}
+        class="nd-btn nd-btn-secondary w-9 px-0"
+      >
+        <.icon name="hero-ellipsis-vertical" class="size-4" />
+      </button>
+
+      <div
+        :if={@open}
+        id={"#{@id}-panel"}
+        phx-hook="MenuPanel"
+        data-trigger={"#{@id}-trigger"}
+        phx-click-away={@on_close}
+        phx-window-keydown={@on_close}
+        phx-key="escape"
+        role="menu"
+        class="nd-menu"
+      >
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders an inline code reference inside prose.
 
   Takes its text as an attribute rather than a slot so template formatting can

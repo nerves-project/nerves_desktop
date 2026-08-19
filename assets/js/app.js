@@ -21,6 +21,39 @@ let Hooks = {
       this.el.textContent = dt.toLocaleTimeString(undefined, options)
     }
   },
+  // The device table scrolls horizontally, so an absolutely positioned menu
+  // would be clipped by its container. Position against the viewport instead.
+  MenuPanel: {
+    mounted() {
+      this.position()
+      this.reposition = () => this.position()
+      window.addEventListener("resize", this.reposition)
+      window.addEventListener("scroll", this.reposition, true)
+
+      const first = this.el.querySelector("[role=menuitem]:not([disabled])")
+      if (first) { first.focus() }
+    },
+    updated() { this.position() },
+    destroyed() {
+      window.removeEventListener("resize", this.reposition)
+      window.removeEventListener("scroll", this.reposition, true)
+    },
+    position() {
+      const trigger = document.getElementById(this.el.dataset.trigger)
+      if (!trigger) { return }
+
+      const anchor = trigger.getBoundingClientRect()
+      const panel = this.el.getBoundingClientRect()
+      const gap = 4
+
+      const below = anchor.bottom + gap
+      const flipped = below + panel.height > window.innerHeight
+      const top = flipped ? anchor.top - panel.height - gap : below
+
+      this.el.style.top = `${Math.max(gap * 2, top)}px`
+      this.el.style.left = `${Math.max(gap * 2, anchor.right - panel.width)}px`
+    }
+  },
   TauriOpen: {
     mounted() {
       this.el.addEventListener("click", (e) => {
