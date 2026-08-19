@@ -120,7 +120,8 @@ defmodule NervesDesktopWeb.UI do
             label="Target Device"
             disabled={@status != :disconnected}
             options={[
-              {"Select a device...", ""} | Enum.map(@devices, &{&1.name || &1.hostname, &1.target})
+              {"Select a device...", ""}
+              | Enum.map(@devices, &{&1[:name] || &1[:hostname], &1[:target]})
             ]}
           />
         </div>
