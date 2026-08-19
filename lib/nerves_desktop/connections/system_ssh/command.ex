@@ -19,6 +19,8 @@ defmodule NervesDesktop.Connections.SystemSSH.Command do
 
   @bsd [:darwin, :freebsd, :openbsd, :netbsd]
 
+  @system_script "/usr/bin/script"
+
   # The linux form runs through `sh -c`, so the target must not contain shell metacharacters
   @target ~r/\A[A-Za-z0-9._\-]+@[A-Za-z0-9._\-]+\z/
 
@@ -36,7 +38,16 @@ defmodule NervesDesktop.Connections.SystemSSH.Command do
 
   def build(_os_type, _connection_str, _script_path), do: {:error, :invalid_target}
 
-  defp resolve_script(:auto), do: System.find_executable("script")
+  # Apple's `script` and util-linux's `script` take incompatible argument forms,
+  # and `do_build/3` picks the form from the OS. Prefer the base-system binary so
+  # that a util-linux `script` earlier in PATH cannot be handed BSD-form
+  # arguments, which fails with "failed to parse output limit size".
+  defp resolve_script(:auto) do
+    if File.regular?(@system_script),
+      do: @system_script,
+      else: System.find_executable("script")
+  end
+
   defp resolve_script(path), do: path
 
   defp do_build({:unix, _}, _connection_str, nil), do: {:error, :script_not_found}
