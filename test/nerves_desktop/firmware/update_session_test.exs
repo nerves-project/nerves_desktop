@@ -33,7 +33,14 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
 
   setup do
     Process.register(self(), :update_test)
-    device = %{id: "network:pi-#{System.unique_integer([:positive])}", target: "pi.local"}
+
+    device = %{
+      id: "network:pi-#{System.unique_integer([:positive])}",
+      target: "pi.local",
+      type: :network,
+      product: "circuits_quickstart",
+      platform: "rpi0_2"
+    }
 
     Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "update:#{device.id}")
     on_exit(fn -> UpdateSupervisor.cancel(device.id) end)
@@ -137,7 +144,16 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
     assert_receive {:update_progress, _id, %{phase: :rebooting}}, 2_000
   end
 
-  test "a firmware chosen from disk is never guessed at", %{device: device} do
+  test "a firmware from disk uses the login of what the device runs now", %{device: device} do
+    {:ok, _pid} =
+      UpdateSupervisor.start_update(device, {:file, "/tmp/a.fw"}, backend: RecordingUpload)
+
+    assert_receive {:attempt, "circuits"}, 2_000
+  end
+
+  test "a device running something unpublished gets no guess", %{device: device} do
+    device = %{device | product: "my_custom_app"}
+
     {:ok, _pid} =
       UpdateSupervisor.start_update(device, {:file, "/tmp/a.fw"}, backend: RecordingUpload)
 

@@ -166,13 +166,11 @@ defmodule NervesDesktop.Firmware.UpdateSession do
     )
   end
 
-  # A published image has a documented login, so offer it from the start. The
-  # SSH client still tries keys first, so a device that does authorize a key
-  # never sees the password, and this avoids a failed connection just to learn
-  # something already known. Firmware chosen from disk is somebody's own build
-  # and gets no guess.
-  defp published_password(%{source: {:catalog, _name, config, _target}}),
-    do: Catalog.default_password(config)
-
-  defp published_password(_state), do: nil
+  # Authentication happens against the firmware the device is running now, not
+  # the one being installed, so the guess comes from the device either way: a
+  # board running Circuits Quickstart takes the same login whether it is being
+  # reinstalled or handed a build from disk. The SSH client still tries keys
+  # first, so a device that authorizes one never sees the password, and a
+  # wrong guess just falls through to asking.
+  defp published_password(%{device: device}), do: Catalog.password_for(device)
 end

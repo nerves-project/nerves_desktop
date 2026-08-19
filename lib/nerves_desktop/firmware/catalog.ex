@@ -47,12 +47,6 @@ defmodule NervesDesktop.Firmware.Catalog do
   }
 
   @doc """
-  The documented password for a published image, when it has one.
-  """
-  @spec default_password(config()) :: binary() | nil
-  def default_password(config), do: Map.get(@default_passwords, Path.basename(config.repo))
-
-  @doc """
   The documented password for whatever image a device reports running.
 
   Unlike `match/1` this ignores the board and the transport, because the
