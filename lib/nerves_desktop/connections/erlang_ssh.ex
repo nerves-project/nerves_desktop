@@ -23,6 +23,11 @@ defmodule NervesDesktop.Connections.ErlangSSH do
   end
 
   @impl NervesDesktop.Connection
+  def resize(pid, cols, rows) do
+    GenServer.cast(pid, {:resize, cols, rows})
+  end
+
+  @impl NervesDesktop.Connection
   def get_history(pid) do
     GenServer.call(pid, :get_history)
   end
@@ -33,7 +38,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
     Process.flag(:trap_exit, true)
     target = Keyword.fetch!(opts, :target)
     Connection.register_backend(target, __MODULE__)
-    {:ok, %{conn: nil, channel: nil, target: target, buffer: Buffer.new()}}
+    {:ok, %{conn: nil, channel: nil, target: target, buffer: Buffer.new(), cols: 80, rows: 24}}
   end
 
   @impl true
@@ -78,7 +83,12 @@ defmodule NervesDesktop.Connections.ErlangSSH do
   defp open_session_channel(conn, target, state) do
     case :ssh_connection.session_channel(conn, 5000) do
       {:ok, channel} ->
-        :ssh_connection.ptty_alloc(conn, channel, [])
+        :ssh_connection.ptty_alloc(conn, channel, [
+          {:term, ~c"xterm-256color"},
+          {:width, state.cols},
+          {:height, state.rows}
+        ])
+
         :ssh_connection.shell(conn, channel)
 
         {:reply, :ok,
@@ -107,6 +117,12 @@ defmodule NervesDesktop.Connections.ErlangSSH do
       end
 
     {:reply, {:error, friendly_reason}, state}
+  end
+
+  @impl true
+  def handle_cast({:resize, cols, rows}, %{conn: conn, channel: channel} = state) do
+    if conn && channel, do: :ssh_connection.window_change(conn, channel, cols, rows)
+    {:noreply, %{state | cols: cols, rows: rows}}
   end
 
   @impl true

@@ -20,7 +20,8 @@ defmodule NervesDesktopWeb.ConsoleLive do
      |> assign(selected_target: nil)
      |> assign(subscribed_target: nil)
      |> assign(selected_name: nil)
-     |> assign(password: "")}
+     |> assign(password: "")
+     |> assign(term_size: {80, 24})}
   end
 
   @impl true
@@ -204,6 +205,19 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
+  def handle_event("resize", %{"cols" => cols, "rows" => rows}, socket)
+      when is_integer(cols) and is_integer(rows) and cols > 0 and rows > 0 do
+    if socket.assigns.connection_pid && socket.assigns.connection_module do
+      socket.assigns.connection_module.resize(socket.assigns.connection_pid, cols, rows)
+    end
+
+    {:noreply, assign(socket, term_size: {cols, rows})}
+  end
+
+  @impl true
+  def handle_event("resize", _params, socket), do: {:noreply, socket}
+
+  @impl true
   def handle_event("data", %{"data" => data}, socket) do
     if socket.assigns.connection_pid && socket.assigns.connection_module do
       socket.assigns.connection_module.send_data(socket.assigns.connection_pid, data)
@@ -248,6 +262,9 @@ defmodule NervesDesktopWeb.ConsoleLive do
     socket = subscribe_to_target(socket, target)
 
     password = if(socket.assigns.password == "", do: nil, else: socket.assigns.password)
+
+    {cols, rows} = socket.assigns.term_size
+    module.resize(pid, cols, rows)
 
     case module.connect(pid, target, "root", password) do
       :ok ->

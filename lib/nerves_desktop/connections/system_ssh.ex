@@ -1,4 +1,8 @@
 defmodule NervesDesktop.Connections.SystemSSH do
+  @moduledoc """
+  SSH via the host `ssh` binary. The remote PTY is fixed at 80x24 because
+  `script` sizes it from the BEAM's stdin, which is not a TTY.
+  """
   use GenServer, restart: :temporary
   require Logger
   @behaviour NervesDesktop.Connection
@@ -21,6 +25,9 @@ defmodule NervesDesktop.Connections.SystemSSH do
   def send_data(pid, data) do
     GenServer.cast(pid, {:send_data, data})
   end
+
+  @impl NervesDesktop.Connection
+  def resize(_pid, _cols, _rows), do: :ok
 
   @impl NervesDesktop.Connection
   def get_history(pid) do
