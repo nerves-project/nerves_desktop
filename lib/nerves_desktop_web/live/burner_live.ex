@@ -26,6 +26,7 @@ defmodule NervesDesktopWeb.BurnerLive do
      |> assign(wifi_ssid: "")
      |> assign(wifi_psk: "")
      |> assign(wifi_form: to_form(%{"ssid" => "", "psk" => ""}, as: :wifi))
+     |> assign(last_write: nil)
      |> assign(fwup_installed?: not is_nil(System.find_executable("fwup")))
      |> assign(host_info: NervesDesktop.HostInfo.get())}
   end
@@ -60,6 +61,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
     {:noreply,
      socket
+     |> clear_outcome()
      |> assign(selected_image: {:local, path})
      |> assign(selected_target_arch: nil)}
   end
@@ -77,9 +79,17 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_info({:fwup, {:ok, _code, _msg}}, socket) do
+    written = %{
+      image: image_name(socket.assigns.selected_image),
+      device: socket.assigns.selected_device
+    }
+
+    send(self(), :scan_devices)
+
     {:noreply,
      socket
-     |> assign(status: :success, message: "Firmware burned successfully!", progress: 100)}
+     |> assign(status: :success, progress: 100, last_write: written)
+     |> assign(selected_image: nil, selected_target_arch: nil, selected_device: nil)}
   end
 
   @impl true
@@ -129,6 +139,7 @@ defmodule NervesDesktopWeb.BurnerLive do
 
     {:noreply,
      socket
+     |> clear_outcome()
      |> assign(selected_image: {name, config}, selected_target_arch: target_arch)}
   end
 
@@ -149,12 +160,12 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_event("select_target_arch", %{"arch" => arch}, socket) do
-    {:noreply, assign(socket, selected_target_arch: arch)}
+    {:noreply, socket |> clear_outcome() |> assign(selected_target_arch: arch)}
   end
 
   @impl true
   def handle_event("select_device", %{"path" => path}, socket) do
-    {:noreply, assign(socket, selected_device: path)}
+    {:noreply, socket |> clear_outcome() |> assign(selected_device: path)}
   end
 
   @impl true
@@ -433,7 +444,7 @@ defmodule NervesDesktopWeb.BurnerLive do
             </p>
           </div>
 
-          <div :if={@status != :idle} aria-live="polite">
+          <div :if={writing?(@status)} aria-live="polite">
             <div class="mb-1.5 flex items-baseline justify-between gap-3">
               <span class="text-[13px] font-semibold">{@message}</span>
               <span class="font-mono text-xs text-muted">{@progress}%</span>
@@ -453,9 +464,18 @@ defmodule NervesDesktopWeb.BurnerLive do
             </div>
           </div>
 
-          <div :if={@status == :success} class="nd-note nd-note-live">
+          <div
+            :if={@status == :success && @last_write}
+            class="nd-note nd-note-live"
+            role="status"
+            aria-live="polite"
+          >
             <.icon name="hero-check-circle" class="mt-px size-4 shrink-0 text-live" />
-            <span>Done. You can eject the card.</span>
+            <span>
+              Wrote <span class="font-semibold">{@last_write.image}</span>
+              to <span class="font-mono font-semibold">{@last_write.device}</span>.
+              The card is unmounted, so you can pull it out now.
+            </span>
           </div>
 
           <div :if={@status == :error} class="nd-note nd-note-danger">
@@ -498,6 +518,16 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @doc false
   def writing?(status), do: status in [:downloading, :burning]
+
+  defp clear_outcome(%{assigns: %{status: status}} = socket) when status in [:success, :error] do
+    Phoenix.Component.assign(socket, status: :idle, progress: 0, message: "", last_write: nil)
+  end
+
+  defp clear_outcome(socket), do: socket
+
+  defp image_name({:local, path}), do: Path.basename(path)
+  defp image_name({name, _config}), do: name
+  defp image_name(_), do: "the firmware"
 
   defp install_commands do
     [
