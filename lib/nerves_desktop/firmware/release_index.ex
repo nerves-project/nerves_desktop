@@ -49,10 +49,12 @@ defmodule NervesDesktop.Firmware.ReleaseIndex do
   def ensure(server \\ __MODULE__, devices), do: GenServer.cast(server, {:ensure, devices})
 
   @doc false
-  def put(server, key, release), do: GenServer.call(server, {:put, key, {:ok, release}})
+  def put(server \\ __MODULE__, key, release),
+    do: GenServer.call(server, {:put, key, {:ok, release}})
 
   @doc false
-  def put_failure(server, key), do: GenServer.call(server, {:put, key, :unavailable})
+  def put_failure(server \\ __MODULE__, key),
+    do: GenServer.call(server, {:put, key, :unavailable})
 
   @doc """
   Compares a device against a release.

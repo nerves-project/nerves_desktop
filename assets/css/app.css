@@ -500,6 +500,12 @@
     color: var(--color-live);
   }
 
+  .nd-chip-caution {
+    background-color: var(--color-caution-soft);
+    border-color: var(--color-caution-line);
+    color: var(--color-caution);
+  }
+
   .nd-chip-serial {
     background-color: var(--color-serial-soft);
     border-color: var(--color-serial-line);
@@ -587,6 +593,49 @@
 
   /* Interpolation delimiters are punctuation, not part of the string. */
   .nd-code .tok-interp {
+    color: var(--color-muted);
+  }
+
+  /* --- Menus ---
+     Positioned from JS against the viewport, because the device table scrolls
+     horizontally and would otherwise clip the panel. --- */
+
+  .nd-menu {
+    position: fixed;
+    z-index: 60;
+    min-width: 15rem;
+    padding: 0.25rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background-color: var(--color-panel);
+    box-shadow: var(--shadow-pop);
+  }
+
+  .nd-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    text-align: left;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .nd-menu-item:hover:not(:disabled) {
+    background-color: var(--color-primary-soft);
+  }
+
+  .nd-menu-item:disabled {
+    color: var(--color-faint);
+    cursor: not-allowed;
+  }
+
+  .nd-menu-note {
+    padding: 0.4375rem 0.5rem;
+    font-size: 0.75rem;
     color: var(--color-muted);
   }
 
