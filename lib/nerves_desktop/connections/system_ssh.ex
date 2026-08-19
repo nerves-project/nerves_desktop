@@ -9,6 +9,8 @@ defmodule NervesDesktop.Connections.SystemSSH do
 
   alias NervesDesktop.Connection
   alias NervesDesktop.Connection.Buffer
+  alias NervesDesktop.Connections.PasswordPrompt
+  alias NervesDesktop.Connections.SystemSSH.Command
 
   @impl NervesDesktop.Connection
   def start_link(opts) do
@@ -45,7 +47,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
        target: target,
        port: nil,
        password: nil,
-       password_sent: false,
+       prompt: PasswordPrompt.new(),
        buffer: Buffer.new()
      }}
   end
@@ -54,53 +56,34 @@ defmodule NervesDesktop.Connections.SystemSSH do
   def handle_call({:connect, target, user, password}, _from, state) do
     if state.port, do: Port.close(state.port)
 
-    connection_str = "#{user}@#{target}"
+    case Command.build(:os.type(), "#{user}@#{target}") do
+      {:ok, executable, args} ->
+        Logger.info("Opening interactive System SSH connection to #{target}")
 
-    # Use a list of arguments to avoid shell interpolation/injection
-    # 'script -q /dev/null' fakes a TTY
-    # On macOS 'script' args are different than Linux. 
-    # This approach is safer than string interpolation.
-    args = [
-      "-q",
-      "/dev/null",
-      "ssh",
-      "-tt",
-      "-o",
-      "StrictHostKeyChecking=no",
-      "-o",
-      "UserKnownHostsFile=/dev/null",
-      "-o",
-      "ConnectTimeout=5",
-      "-o",
-      "SendEnv=LANG",
-      "-o",
-      "SendEnv=LC_ALL",
-      connection_str
-    ]
+        port =
+          Port.open({:spawn_executable, executable}, [
+            :binary,
+            :exit_status,
+            :stderr_to_stdout,
+            args: args,
+            env: NervesDesktop.HostInfo.utf8_env()
+          ])
 
-    env = NervesDesktop.HostInfo.utf8_env()
+        {:reply, :ok,
+         %{
+           state
+           | status: :connected,
+             target: target,
+             port: port,
+             password: password,
+             prompt: PasswordPrompt.new(),
+             buffer: Buffer.new()
+         }}
 
-    Logger.info("Opening interactive System SSH connection: script #{Enum.join(args, " ")}")
-
-    port =
-      Port.open({:spawn_executable, "/usr/bin/script"}, [
-        :binary,
-        :exit_status,
-        :stderr_to_stdout,
-        args: args,
-        env: env
-      ])
-
-    {:reply, :ok,
-     %{
-       state
-       | status: :connected,
-         target: target,
-         port: port,
-         password: password,
-         password_sent: false,
-         buffer: Buffer.new()
-     }}
+      {:error, reason} ->
+        Logger.error("System SSH unavailable on this host: #{inspect(reason)}")
+        {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
@@ -121,25 +104,23 @@ defmodule NervesDesktop.Connections.SystemSSH do
 
   @impl true
   def handle_info({port, {:data, data}}, %{port: port} = state) do
-    state =
-      if state.password && !state.password_sent && data =~ ~r/[Pp]assword:/ do
-        Logger.info("Detected auth prompt, responding")
-        Process.send_after(self(), {:send_password, state.password}, 100)
-        %{state | password_sent: true}
-      else
-        state
-      end
+    {action, prompt} = PasswordPrompt.feed(state.prompt, data)
+
+    if action == :send and state.password do
+      Logger.info("Detected auth prompt, responding")
+      Process.send_after(self(), :send_password, 100)
+    end
 
     Connection.broadcast_output(state.target, data)
 
-    {:noreply, %{state | buffer: Buffer.push(state.buffer, data)}}
+    {:noreply, %{state | prompt: prompt, buffer: Buffer.push(state.buffer, data)}}
   end
 
   @impl true
-  def handle_info({:send_password, password}, %{port: port} = state) when not is_nil(port) do
+  def handle_info(:send_password, %{port: port, password: password} = state)
+      when not is_nil(port) and not is_nil(password) do
     Port.command(port, password <> "\n")
-    # Clear password from state after sending for security
-    {:noreply, %{state | password: nil}}
+    {:noreply, state}
   end
 
   @impl true
@@ -152,7 +133,7 @@ defmodule NervesDesktop.Connections.SystemSSH do
   end
 
   @impl true
-  def handle_info({:send_password, _password}, state) do
+  def handle_info(:send_password, state) do
     Logger.debug("SystemSSH dropped a deferred credential send with no open port")
     {:noreply, state}
   end
