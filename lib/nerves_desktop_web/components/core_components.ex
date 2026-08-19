@@ -8,12 +8,10 @@ defmodule NervesDesktopWeb.CoreComponents do
   with doc strings and declarative assigns. You may customize and style
   them in any way you want, based on your application growth and needs.
 
-  The foundation for styling is Tailwind CSS, a utility-first CSS framework,
-  augmented with daisyUI, a Tailwind CSS plugin that provides UI components
-  and themes. Here are useful references:
-
-    * [daisyUI](https://daisyui.com/docs/intro/) - a good place to get
-      started and see the available components.
+  Styling is Tailwind CSS plus the `nd-*` component layer defined in
+  `assets/css/app.css`, which holds the design tokens and the shared
+  anatomy for panels, controls, buttons, and notes. Here are useful
+  references:
 
     * [Tailwind CSS](https://tailwindcss.com) - the foundational framework
       we build on. You will use it for layout, sizing, flexbox, grid, and
@@ -55,23 +53,34 @@ defmodule NervesDesktopWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="pointer-events-auto"
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
+        "nd-note items-start gap-3 bg-panel shadow-pop",
+        @kind == :info && "nd-note-info",
+        @kind == :error && "nd-note-danger"
       ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
+        <.icon
+          :if={@kind == :info}
+          name="hero-information-circle"
+          class="size-4 shrink-0 mt-px text-primary"
+        />
+        <.icon
+          :if={@kind == :error}
+          name="hero-exclamation-circle"
+          class="size-4 shrink-0 mt-px text-danger"
+        />
+        <div class="min-w-0 flex-1">
           <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
+          <p class="text-muted">{msg}</p>
         </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label="close">
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
+        <button
+          type="button"
+          class="group shrink-0 cursor-pointer rounded-sm text-faint hover:text-ink"
+          aria-label="Dismiss"
+        >
+          <.icon name="hero-x-mark" class="size-4" />
         </button>
       </div>
     </div>
@@ -89,15 +98,21 @@ defmodule NervesDesktopWeb.CoreComponents do
   """
   attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
   attr :class, :any
-  attr :variant, :string, values: ~w(primary)
+  attr :variant, :string, values: ~w(primary secondary ghost danger)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+    variants = %{
+      "primary" => "nd-btn-primary",
+      "secondary" => "nd-btn-secondary",
+      "ghost" => "nd-btn-ghost",
+      "danger" => "nd-btn-danger",
+      nil => "nd-btn-secondary"
+    }
 
     assigns =
       assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
+        ["nd-btn", Map.fetch!(variants, assigns[:variant])]
       end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
@@ -204,8 +219,8 @@ defmodule NervesDesktopWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
+    <div class="nd-field">
+      <label for={@id} class="flex items-center gap-2 text-[13px]">
         <input
           type="hidden"
           name={@name}
@@ -213,17 +228,15 @@ defmodule NervesDesktopWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="label">
-          <input
-            type="checkbox"
-            id={@id}
-            name={@name}
-            value="true"
-            checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
-            {@rest}
-          />{@label}
-        </span>
+        <input
+          type="checkbox"
+          id={@id}
+          name={@name}
+          value="true"
+          checked={@checked}
+          class={@class || "nd-checkbox"}
+          {@rest}
+        />{@label}
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -232,12 +245,12 @@ defmodule NervesDesktopWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2 flex-col">
-      <label :if={@label} for={@id} class="label mb-1">{@label}</label>
+    <div class="nd-field">
+      <label :if={@label} for={@id} class="nd-label">{@label}</label>
       <select
         id={@id}
         name={@name}
-        class={[@class || "w-fit select", @errors != [] && (@error_class || "select-error")]}
+        class={[@class || "nd-control", @errors != [] && (@error_class || "nd-control-error")]}
         multiple={@multiple}
         {@rest}
       >
@@ -251,14 +264,15 @@ defmodule NervesDesktopWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2 flex-col">
-      <label :if={@label} for={@id} class="label mb-1">{@label}</label>
+    <div class="nd-field">
+      <label :if={@label} for={@id} class="nd-label">{@label}</label>
       <textarea
         id={@id}
         name={@name}
+        rows={@rest[:rows] || 4}
         class={[
-          @class || "w-full textarea",
-          @errors != [] && (@error_class || "textarea-error")
+          @class || "nd-control",
+          @errors != [] && (@error_class || "nd-control-error")
         ]}
         {@rest}
       >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -270,16 +284,16 @@ defmodule NervesDesktopWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2 flex-col">
-      <label :if={@label} for={@id} class="label mb-1">{@label}</label>
+    <div class="nd-field">
+      <label :if={@label} for={@id} class="nd-label">{@label}</label>
       <input
         type={@type}
         name={@name}
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          @class || "w-full input",
-          @errors != [] && (@error_class || "input-error")
+          @class || "nd-control",
+          @errors != [] && (@error_class || "nd-control-error")
         ]}
         {@rest}
       />
@@ -291,8 +305,8 @@ defmodule NervesDesktopWeb.CoreComponents do
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
-      <.icon name="hero-exclamation-circle" class="size-5" />
+    <p class="flex gap-1.5 items-center text-xs text-danger">
+      <.icon name="hero-exclamation-circle" class="size-4 shrink-0" />
       {render_slot(@inner_block)}
     </p>
     """
@@ -309,10 +323,10 @@ defmodule NervesDesktopWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8">
+        <h1 class="font-display text-lg font-semibold">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-[13px] text-muted">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -353,26 +367,30 @@ defmodule NervesDesktopWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class="w-full border-collapse text-left">
       <thead>
-        <tr>
-          <th :for={col <- @col}>{col[:label]}</th>
-          <th :if={@action != []}>
+        <tr class="border-b border-rule">
+          <th :for={col <- @col} class="nd-label px-3 py-2">{col[:label]}</th>
+          <th :if={@action != []} class="px-3 py-2">
             <span class="sr-only">Actions</span>
           </th>
         </tr>
       </thead>
-      <tbody id={@id} phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}>
-        <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
+      <tbody
+        id={@id}
+        phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}
+        class="divide-y divide-rule"
+      >
+        <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="hover:bg-sunk">
           <td
             :for={col <- @col}
             phx-click={@row_click && @row_click.(row)}
-            class={@row_click && "hover:cursor-pointer"}
+            class={["px-3 py-2.5", @row_click && "hover:cursor-pointer"]}
           >
             {render_slot(col, @row_item.(row))}
           </td>
-          <td :if={@action != []} class="w-0 font-semibold">
-            <div class="flex gap-4">
+          <td :if={@action != []} class="w-0 px-3 py-2.5 font-semibold">
+            <div class="flex gap-3">
               <%= for action <- @action do %>
                 {render_slot(action, @row_item.(row))}
               <% end %>
@@ -400,12 +418,10 @@ defmodule NervesDesktopWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <ul class="list">
-      <li :for={item <- @item} class="list-row">
-        <div class="list-col-grow">
-          <div class="font-bold">{item.title}</div>
-          <div>{render_slot(item)}</div>
-        </div>
+    <ul class="divide-y divide-rule">
+      <li :for={item <- @item} class="flex flex-col gap-0.5 py-2.5">
+        <div class="nd-label">{item.title}</div>
+        <div>{render_slot(item)}</div>
       </li>
     </ul>
     """

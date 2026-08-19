@@ -1,17 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="NervesDesktop" suffix=" · Phoenix Framework">
+    <.live_title default="Nerves Desktop" suffix=" · Nerves Desktop">
       {assigns[:page_title]}
     </.live_title>
+    <link
+      rel="preload"
+      href={~p"/fonts/ibm-plex-sans-var.woff2"}
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href={~p"/fonts/archivo-var.woff2"}
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="bg-base-200/50 min-h-screen antialiased">
+  <body class="min-h-screen bg-ground">
     {@inner_content}
   </body>
 </html>
