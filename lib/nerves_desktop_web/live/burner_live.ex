@@ -69,13 +69,10 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_info({:fwup, {:progress, p}}, socket) do
-    total_progress =
-      case socket.assigns.selected_image do
-        {:local, _} -> p
-        _remote -> 50 + div(p, 2)
-      end
+    downloaded? = not match?({:local, _}, socket.assigns.selected_image)
 
-    {:noreply, assign(socket, progress: total_progress)}
+    {:noreply,
+     assign(socket, progress: NervesDesktop.Firmware.total_percent(:uploading, p, downloaded?))}
   end
 
   @impl true
@@ -106,8 +103,8 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_info({:download_progress, percent}, socket) do
-    total_progress = div(percent, 2)
-    {:noreply, assign(socket, progress: total_progress)}
+    {:noreply,
+     assign(socket, progress: NervesDesktop.Firmware.total_percent(:downloading, percent, true))}
   end
 
   @impl true

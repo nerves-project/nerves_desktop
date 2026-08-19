@@ -62,6 +62,7 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
     {:ok, _pid} = start(device)
 
     assert_receive {:uploaded, "/tmp/a.fw", stub}, 2_000
+    # Nothing to download, so the upload owns the whole bar.
     assert_receive {:update_progress, _id, %{percent: 50}}, 2_000
 
     send(stub, {:reply, {:ok, :applied}})
@@ -160,6 +161,15 @@ defmodule NervesDesktop.Firmware.UpdateSessionTest do
     assert_receive {:attempt, nil}, 2_000
     refute_receive {:attempt, "circuits"}, 500
     assert_receive {:update_progress, _id, %{phase: :failed}}, 2_000
+  end
+
+  test "a catalog update reports one bar across both halves", %{device: device} do
+    {:ok, _pid} = start_catalog(device)
+
+    # The stub downloader finishes instantly, so the first thing seen is the
+    # upload phase already at the halfway mark rather than back at zero.
+    assert_receive {:update_progress, _id, %{phase: :uploading, percent: 50}}, 2_000
+    assert_receive {:update_progress, _id, %{phase: :rebooting, percent: 100}}, 2_000
   end
 
   test "a password the user supplied is not second-guessed", %{device: device} do

@@ -12,6 +12,7 @@ defmodule NervesDesktop.Firmware.UpdateSession do
 
   use GenServer, restart: :temporary
 
+  alias NervesDesktop.Firmware
   alias NervesDesktop.Firmware.Catalog
   alias NervesDesktop.Firmware.Upload
 
@@ -59,15 +60,20 @@ defmodule NervesDesktop.Firmware.UpdateSession do
       password: Keyword.get(opts, :password),
       backend: Keyword.get(opts, :backend) || Upload.backend(),
       downloader: Keyword.get(opts, :downloader, NervesBurner.Downloader),
-      progress: %{phase: starting_phase(Keyword.fetch!(opts, :source)), percent: nil, error: nil},
+      progress: starting_progress(Keyword.fetch!(opts, :source)),
       task: nil
     }
 
     {:ok, state, {:continue, :run}}
   end
 
-  defp starting_phase({:catalog, _, _, _}), do: :downloading
-  defp starting_phase({:file, _}), do: :uploading
+  defp starting_progress(source) do
+    phase = if downloads?(source), do: :downloading, else: :uploading
+    %{phase: phase, percent: Firmware.phase_floor(phase, downloads?(source)), error: nil}
+  end
+
+  defp downloads?({:catalog, _name, _config, _target}), do: true
+  defp downloads?({:file, _path}), do: false
 
   @impl true
   def handle_continue(:run, state) do
@@ -86,12 +92,16 @@ defmodule NervesDesktop.Firmware.UpdateSession do
 
   @impl true
   def handle_info({:phase, phase}, state) do
-    {:noreply, state |> put_progress(%{phase: phase, percent: nil, error: nil}) |> announce()}
+    percent = Firmware.phase_floor(phase, downloads?(state.source))
+
+    {:noreply, state |> put_progress(%{phase: phase, percent: percent, error: nil}) |> announce()}
   end
 
   @impl true
   def handle_info({:percent, percent}, state) do
-    {:noreply, state |> put_progress(%{state.progress | percent: percent}) |> announce()}
+    total = Firmware.total_percent(state.progress.phase, percent, downloads?(state.source))
+
+    {:noreply, state |> put_progress(%{state.progress | percent: total}) |> announce()}
   end
 
   @impl true
