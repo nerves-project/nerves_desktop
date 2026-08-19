@@ -3,13 +3,13 @@ defmodule NervesDesktopWeb.BurnerLive do
   require Logger
 
   alias NervesBurner.FirmwareImages
+  alias NervesDesktop.Native
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       send(self(), :scan_devices)
-      # Subscribe to file dialog result from Rust
-      ElixirKit.PubSub.subscribe("file_dialog_result")
+      Native.subscribe("file_dialog_result")
     end
 
     {:ok,
@@ -27,6 +27,7 @@ defmodule NervesDesktopWeb.BurnerLive do
      |> assign(wifi_psk: "")
      |> assign(wifi_form: to_form(%{"ssid" => "", "psk" => ""}, as: :wifi))
      |> assign(last_write: nil)
+     |> assign(native?: Native.available?())
      |> assign(fwup_installed?: not is_nil(System.find_executable("fwup")))
      |> assign(host_info: NervesDesktop.HostInfo.get())}
   end
@@ -145,16 +146,13 @@ defmodule NervesDesktopWeb.BurnerLive do
 
   @impl true
   def handle_event("open_url", %{"url" => url}, socket) do
-    if System.get_env("ELIXIRKIT_PUBSUB") do
-      ElixirKit.PubSub.broadcast("opener", url)
-    end
-
+    Native.broadcast("opener", url)
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("select_local_firmware", _params, socket) do
-    ElixirKit.PubSub.broadcast("messages", "open_file_dialog")
+    Native.broadcast("messages", "open_file_dialog")
     {:noreply, socket}
   end
 
@@ -279,7 +277,12 @@ defmodule NervesDesktopWeb.BurnerLive do
         <div class="space-y-5">
           <UI.panel step={1} done={not is_nil(@selected_image)} label="Pick the firmware">
             <:actions>
-              <button phx-click="select_local_firmware" class="nd-btn nd-btn-ghost h-7">
+              <button
+                phx-click="select_local_firmware"
+                disabled={!@native?}
+                title={!@native? && "Choosing a file needs the desktop app"}
+                class="nd-btn nd-btn-ghost h-7 disabled:bg-transparent disabled:text-faint"
+              >
                 <.icon name="hero-folder-open" class="size-3.5" /> Open file
               </button>
             </:actions>

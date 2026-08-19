@@ -1,5 +1,7 @@
 defmodule NervesDesktopWeb.BurnerLiveTest do
-  use ExUnit.Case, async: true
+  use NervesDesktopWeb.ConnCase, async: true
+
+  import Phoenix.LiveViewTest
 
   alias NervesDesktopWeb.BurnerLive
 
@@ -17,5 +19,23 @@ defmodule NervesDesktopWeb.BurnerLiveTest do
       refute BurnerLive.writing?(:success)
       refute BurnerLive.writing?(:error)
     end
+  end
+
+  test "mounts without the Tauri shell", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/burner")
+
+    assert has_element?(view, "button[phx-click='burn']")
+  end
+
+  test "the write button starts disabled with nothing chosen", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/burner")
+
+    assert has_element?(view, "button[phx-click='burn'][disabled]")
+  end
+
+  test "the file picker is disabled without the shell that provides it", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/burner")
+
+    assert has_element?(view, "button[phx-click='select_local_firmware'][disabled]")
   end
 end
