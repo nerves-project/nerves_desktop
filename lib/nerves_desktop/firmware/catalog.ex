@@ -37,6 +37,20 @@ defmodule NervesDesktop.Firmware.Catalog do
   @spec updatable?(map()) :: boolean()
   def updatable?(device), do: match(device) != :no_match
 
+  # The published builds of these images ship a known login and authorize no
+  # developer key, so the password is a property of the image rather than
+  # something to ask for. An image not listed here gets no guess.
+  @default_passwords %{
+    "circuits_quickstart" => "circuits",
+    "nerves_livebook" => "nerves"
+  }
+
+  @doc """
+  The documented password for a published image, when it has one.
+  """
+  @spec default_password(config()) :: binary() | nil
+  def default_password(config), do: Map.get(@default_passwords, Path.basename(config.repo))
+
   @doc """
   The name of the `.fw` release asset for a target.
   """

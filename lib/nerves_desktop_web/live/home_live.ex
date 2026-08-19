@@ -5,6 +5,7 @@ defmodule NervesDesktopWeb.HomeLive do
   alias NervesDesktop.Firmware.ReleaseIndex
   alias NervesDesktop.Firmware.UpdateSession
   alias NervesDesktop.Firmware.UpdateSupervisor
+  alias NervesDesktop.Connections.SSHError
   alias NervesDesktop.Native
 
   @impl true
@@ -28,6 +29,7 @@ defmodule NervesDesktopWeb.HomeLive do
      |> assign(open_menu: nil)
      |> assign(native?: Native.available?())
      |> assign(updates: UpdateSession.active())
+     |> assign(update_sources: %{})
      |> put_devices(devices)}
   end
 
@@ -104,6 +106,22 @@ defmodule NervesDesktopWeb.HomeLive do
   end
 
   @impl true
+  def handle_event("retry_update", %{"id" => id, "retry" => %{"password" => password}}, socket) do
+    case socket.assigns.update_sources[id] do
+      nil ->
+        {:noreply, socket}
+
+      {source, device} ->
+        password = if password == "", do: nil, else: password
+
+        {:noreply,
+         socket
+         |> assign(updates: Map.delete(socket.assigns.updates, id))
+         |> start_update(device, source, password: password)}
+    end
+  end
+
+  @impl true
   def handle_event("cancel_update", %{"id" => id}, socket) do
     UpdateSupervisor.cancel(id)
     {:noreply, assign(socket, updates: Map.delete(socket.assigns.updates, id))}
@@ -121,10 +139,12 @@ defmodule NervesDesktopWeb.HomeLive do
     |> assign(firmware_status: ReleaseIndex.statuses(devices))
   end
 
-  defp start_update(socket, device, source) do
+  defp start_update(socket, device, source, opts \\ []) do
     subscribe_to_updates(device[:id])
 
-    case UpdateSupervisor.start_update(device, source) do
+    socket = update(socket, :update_sources, &Map.put(&1, device[:id], {source, device}))
+
+    case UpdateSupervisor.start_update(device, source, opts) do
       {:ok, _pid} ->
         assign(socket,
           updates:
@@ -250,7 +270,11 @@ defmodule NervesDesktopWeb.HomeLive do
                   </td>
                   <td class="px-4 py-3">
                     <div :if={@updates[device[:id]]} class="min-w-48">
-                      <.update_progress progress={@updates[device[:id]]} id={device[:id]} />
+                      <.update_progress
+                        progress={@updates[device[:id]]}
+                        id={device[:id]}
+                        target={device[:name] || device[:target]}
+                      />
                     </div>
                   </td>
                   <td class="px-4 py-3">
@@ -345,12 +369,36 @@ defmodule NervesDesktopWeb.HomeLive do
 
   attr :progress, :map, required: true
   attr :id, :string, required: true
+  attr :target, :string, default: "the device"
 
   defp update_progress(assigns) do
     ~H"""
-    <div :if={@progress.phase == :failed} class="flex items-start gap-1.5 text-xs text-danger">
-      <.icon name="hero-exclamation-triangle" class="mt-px size-3.5 shrink-0" />
-      <span>{format_error(@progress.error)}</span>
+    <div :if={@progress.phase == :failed} class="space-y-1.5">
+      <div class="flex items-start gap-1.5 text-xs text-danger">
+        <.icon name="hero-exclamation-triangle" class="mt-px size-3.5 shrink-0" />
+        <span>{format_error(@progress.error, @target)}</span>
+      </div>
+
+      <.form
+        :let={f}
+        :if={SSHError.auth_failure?(@progress.error)}
+        for={to_form(%{}, as: :retry)}
+        id={"retry-#{@id}"}
+        phx-submit="retry_update"
+        phx-value-id={@id}
+        class="flex items-center gap-1.5"
+      >
+        <div class="flex-1">
+          <.input
+            field={f[:password]}
+            type="password"
+            placeholder="Device password"
+            autocomplete="off"
+            class="nd-control h-7 text-xs"
+          />
+        </div>
+        <button type="submit" class="nd-btn nd-btn-secondary h-7 px-2 text-xs">Retry</button>
+      </.form>
     </div>
 
     <div :if={@progress.phase != :failed}>
@@ -393,14 +441,17 @@ defmodule NervesDesktopWeb.HomeLive do
   defp phase_label(:rebooting), do: "Sent — rebooting"
   defp phase_label(other), do: to_string(other)
 
-  defp format_error(reason) when is_binary(reason), do: reason
-  defp format_error(:no_fwup_subsystem), do: "This device has no fwup SSH subsystem."
+  defp format_error(:no_fwup_subsystem, target),
+    do: "#{target} has no fwup SSH subsystem, so it cannot be updated over the air."
 
-  defp format_error({:exit_status, status}),
-    do: "The device rejected the firmware (exit #{status})."
+  defp format_error({:exit_status, status}, target),
+    do: "#{target} rejected the firmware (exit #{status})."
 
-  defp format_error(:timeout), do: "The device stopped responding."
-  defp format_error(reason), do: inspect(reason)
+  defp format_error(:timeout, target), do: "#{target} stopped responding."
+
+  # Anything else came from SSH, which already explains what to do next.
+  defp format_error(reason, target),
+    do: SSHError.describe(reason, target: target, password?: false)
 
   # Blank Firmware columns mean the device is not advertising its metadata, which
   # is what the mDNS snippet below the table fixes.

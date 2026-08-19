@@ -14,7 +14,11 @@ defmodule NervesDesktop.Firmware.Upload.SystemSSH do
 
   require Logger
 
-  @ssh_opts "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
+  # BatchMode stops ssh waiting on a password prompt that nothing can answer:
+  # this port has no terminal, so an interactive prompt would hang until the
+  # upload timed out. Passwords are the Erlang backend's job.
+  @ssh_opts "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null " <>
+              "-o ConnectTimeout=10 -o BatchMode=yes"
 
   @impl true
   def upload(target, fw_path, opts \\ []) do

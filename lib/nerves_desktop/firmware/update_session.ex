@@ -12,6 +12,8 @@ defmodule NervesDesktop.Firmware.UpdateSession do
 
   use GenServer, restart: :temporary
 
+  alias NervesDesktop.Connections.SSHError
+  alias NervesDesktop.Firmware.Catalog
   alias NervesDesktop.Firmware.Upload
 
   require Logger
@@ -57,6 +59,7 @@ defmodule NervesDesktop.Firmware.UpdateSession do
       source: Keyword.fetch!(opts, :source),
       password: Keyword.get(opts, :password),
       backend: Keyword.get(opts, :backend) || Upload.backend(),
+      downloader: Keyword.get(opts, :downloader, NervesBurner.Downloader),
       progress: %{phase: starting_phase(Keyword.fetch!(opts, :source)), percent: nil, error: nil},
       task: nil
     }
@@ -139,7 +142,7 @@ defmodule NervesDesktop.Firmware.UpdateSession do
     send(parent, {:phase, :downloading})
 
     result =
-      NervesBurner.Downloader.download(config, target,
+      state.downloader.download(config, target,
         on_progress: fn total, current ->
           if total > 0, do: send(parent, {:percent, round(current / total * 100)})
         end
@@ -154,9 +157,31 @@ defmodule NervesDesktop.Firmware.UpdateSession do
   defp upload(parent, state, path) do
     send(parent, {:phase, :uploading})
 
+    case attempt(parent, state, path, state.password) do
+      {:error, reason} ->
+        case published_password(state, reason) do
+          nil -> {:error, reason}
+          password -> attempt(parent, state, path, password)
+        end
+
+      result ->
+        result
+    end
+  end
+
+  defp attempt(parent, state, path, password) do
     state.backend.upload(state.device[:target], path,
-      password: state.password,
+      password: password,
       on_progress: &send(parent, {:percent, &1})
     )
   end
+
+  # A published image has a documented login, so a refusal is worth one more
+  # try before asking. Firmware chosen from disk is somebody's own build and
+  # gets no guess, and a password the user typed is never second-guessed.
+  defp published_password(%{source: {:catalog, _name, config, _target}, password: nil}, reason) do
+    if SSHError.auth_failure?(reason), do: Catalog.default_password(config)
+  end
+
+  defp published_password(_state, _reason), do: nil
 end
