@@ -274,7 +274,9 @@ defmodule NervesDesktopWeb.BurnerLive do
                   </code>
                 </div>
                 <div class="bg-white/50 p-4 rounded-xl border border-red-200">
-                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">Windows</p>
+                  <p class="text-xs font-black uppercase text-red-900 mb-2 tracking-widest">
+                    Windows
+                  </p>
                   <code class="text-sm font-mono text-red-800 bg-red-100/50 px-2 py-1 rounded">
                     choco install fwup
                   </code>

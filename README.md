@@ -90,13 +90,7 @@ sudo apt-get install \
 mix deps.get
 ```
 
-### 2. Setup Frontend Assets
-
-```bash
-npm install --prefix assets
-```
-
-### 3. Run the Desktop App
+### 2. Run the Desktop App
 
 The following command starts the Phoenix server and the native Tauri window
 simultaneously:
