@@ -23,6 +23,9 @@ defmodule NervesDesktop.Connections.UART do
   end
 
   @impl NervesDesktop.Connection
+  def resize(_pid, _cols, _rows), do: :ok
+
+  @impl NervesDesktop.Connection
   def get_history(pid) do
     GenServer.call(pid, :get_history)
   end

@@ -7,6 +7,7 @@ defmodule NervesDesktop.Connection do
   @callback connect(pid(), target :: binary(), user :: binary(), password :: binary() | nil) ::
               :ok | {:error, term()}
   @callback send_data(pid(), data :: binary()) :: :ok
+  @callback resize(pid(), cols :: pos_integer(), rows :: pos_integer()) :: :ok
   @callback get_history(pid()) :: binary()
 
   def via_tuple(target), do: {:via, Registry, {NervesDesktop.ConnectionRegistry, target}}

@@ -73,8 +73,15 @@ let Hooks = {
       this.fitAddon = new FitAddon()
       this.term.loadAddon(this.fitAddon)
 
+      this.pushResize = (cols, rows) => {
+        clearTimeout(this.resizeTimer)
+        this.resizeTimer = setTimeout(() => this.pushEvent("resize", {cols, rows}), 100)
+      }
+      this.term.onResize(({cols, rows}) => this.pushResize(cols, rows))
+
       this.term.open(this.el)
       this.fitAddon.fit()
+      this.pushResize(this.term.cols, this.term.rows)
 
       this.resizeObserver = new ResizeObserver(() => {
         this.fitAddon.fit()
@@ -100,6 +107,7 @@ let Hooks = {
       })
     },
     destroyed() {
+      clearTimeout(this.resizeTimer)
       if (this.resizeObserver) {
         this.resizeObserver.disconnect()
       }
