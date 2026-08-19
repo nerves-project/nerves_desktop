@@ -85,7 +85,7 @@ defmodule NervesDesktopWeb.UI do
       </span>
 
       <p class="text-xs text-muted">
-        Last swept
+        Last scan
         <time
           id={@id}
           datetime={DateTime.to_iso8601(@last_scan_at)}
