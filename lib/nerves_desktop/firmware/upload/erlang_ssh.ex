@@ -35,6 +35,10 @@ defmodule NervesDesktop.Firmware.Upload.ErlangSSH do
         user: ~c"root",
         silently_accept_hosts: true,
         user_interaction: false,
+        # Without this Erlang falls through to keyboard-interactive, which it
+        # cannot answer with user_interaction off, and reports the refusal as
+        # "Service not available" rather than as an authentication failure.
+        auth_methods: ~c"publickey,password",
         connect_timeout: @connect_timeout
       ]
       |> then(fn opts ->

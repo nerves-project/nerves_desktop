@@ -53,6 +53,22 @@ defmodule NervesDesktop.Firmware.CatalogTest do
     end
   end
 
+  describe "default_password/1" do
+    test "knows the documented login for each published image" do
+      {:ok, _, quickstart} = Catalog.match(device())
+      {:ok, _, livebook} = Catalog.match(device(%{product: "nerves_livebook", platform: "rpi4"}))
+
+      assert Catalog.default_password(quickstart) == "circuits"
+      assert Catalog.default_password(livebook) == "nerves"
+    end
+
+    test "offers no guess for an image whose login is not documented" do
+      {:ok, _, kiosk} = Catalog.match(device(%{product: "kiosk_demo", platform: "rpi4"}))
+
+      assert Catalog.default_password(kiosk) == nil
+    end
+  end
+
   test "updatable?/1 answers without the caller destructuring a match" do
     assert Catalog.updatable?(device())
     refute Catalog.updatable?(device(%{type: :uart}))

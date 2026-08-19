@@ -11,6 +11,14 @@ defmodule NervesDesktop.Connections.SSHError do
   # Returned for a rejected key, an unknown user, or a server that declines the session
   @refused ~c"Service not available"
 
+  @doc """
+  Whether a failure is the device declining our credentials, which is the one
+  case a password can still rescue.
+  """
+  @spec auth_failure?(term()) :: boolean()
+  def auth_failure?(reason) when reason in [@auth_failed, @refused], do: true
+  def auth_failure?(_reason), do: false
+
   @spec describe(term(), keyword()) :: binary()
   def describe(reason, opts \\ []) do
     target = Keyword.get(opts, :target, "the device")
