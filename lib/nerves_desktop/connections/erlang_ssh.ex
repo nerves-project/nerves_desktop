@@ -5,6 +5,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
   alias NervesDesktop.Connection
   alias NervesDesktop.Connection.Buffer
+  alias NervesDesktop.Connections.SSHError
 
   @impl NervesDesktop.Connection
   def start_link(opts) do
@@ -62,7 +63,7 @@ defmodule NervesDesktop.Connections.ErlangSSH do
 
     opts = if password, do: [{:password, String.to_charlist(password)} | opts], else: opts
 
-    connect_and_open_channel(host, opts, target, state)
+    connect_and_open_channel(host, opts, target, state, password != nil)
   end
 
   @impl true
@@ -70,13 +71,13 @@ defmodule NervesDesktop.Connections.ErlangSSH do
     {:reply, Buffer.to_binary(state.buffer), state}
   end
 
-  defp connect_and_open_channel(host, opts, target, state) do
+  defp connect_and_open_channel(host, opts, target, state, password?) do
     case :ssh.connect(host, 22, opts, 5000) do
       {:ok, conn} ->
         open_session_channel(conn, target, state)
 
       {:error, reason} ->
-        handle_connect_error(reason, target, state)
+        handle_connect_error(reason, target, state, password?)
     end
   end
 
@@ -101,22 +102,9 @@ defmodule NervesDesktop.Connections.ErlangSSH do
     end
   end
 
-  defp handle_connect_error(reason, target, state) do
+  defp handle_connect_error(reason, target, state, password?) do
     Logger.error("Erlang SSH failed to connect to #{target}: #{inspect(reason)}")
-
-    friendly_reason =
-      case reason do
-        ~c"Service not available" ->
-          "Erlang SSH cannot decrypt SSH keys with passphrases. Please use an unencrypted key or switch to System SSH in Settings."
-
-        ~c"Unable to connect using the available authentication methods" ->
-          "Erlang SSH could not find a valid unencrypted SSH key in ~/.ssh or a password. Try using System SSH in Settings."
-
-        _ ->
-          reason
-      end
-
-    {:reply, {:error, friendly_reason}, state}
+    {:reply, {:error, SSHError.describe(reason, target: target, password?: password?)}, state}
   end
 
   @impl true
