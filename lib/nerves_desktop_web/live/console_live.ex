@@ -378,8 +378,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
               (@status == :connected &&
                  "bg-live shadow-[0_0_7px_0_var(--color-live)] motion-safe:animate-pulse") ||
                 "bg-white/25"
-            ]}>
-            </span>
+            ]}></span>
             <span class={[
               "truncate font-mono text-xs",
               (@selected_target && "text-secondary") || "text-white/60"

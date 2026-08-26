@@ -11,8 +11,6 @@ defmodule NervesDesktop.Firmware.Upload.ErlangSSH do
 
   alias NervesDesktop.Firmware.Upload.Progress
 
-  require Logger
-
   @chunk 64 * 1024
   @connect_timeout 10_000
   @send_timeout 60_000

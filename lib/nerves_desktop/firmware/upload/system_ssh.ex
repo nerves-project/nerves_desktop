@@ -12,8 +12,6 @@ defmodule NervesDesktop.Firmware.Upload.SystemSSH do
 
   alias NervesDesktop.Firmware.Upload.Progress
 
-  require Logger
-
   # BatchMode stops ssh waiting on a password prompt that nothing can answer:
   # this port has no terminal, so an interactive prompt would hang until the
   # upload timed out. Passwords are the Erlang backend's job.
