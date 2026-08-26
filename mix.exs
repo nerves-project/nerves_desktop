@@ -67,7 +67,7 @@ defmodule NervesDesktop.MixProject do
       {:bandit, "~> 1.5"},
       {:elixirkit, "~> 0.1.0"},
       {:nerves_discovery, "~> 0.1.2"},
-      {:nerves_burner, github: "gworkman/nerves_burner"},
+      {:nerves_burner, github: "nerves-project/nerves_burner"},
       {:fwup, "~> 1.1"}
     ]
   end
