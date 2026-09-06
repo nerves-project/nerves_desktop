@@ -1,0 +1,52 @@
+name: "Build Tagged Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  verify_version:
+    name: "Verify version"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28.5"
+          elixir-version: "1.19.5"
+
+      - name: Mix deps cache
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+
+      - name: Install Mix dependencies
+        shell: bash
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      # Fails before spending five platform builds on a mislabelled release
+      - name: Check tag against VERSION
+        shell: bash
+        run: mix version.check --tag "${{ github.ref_name }}"
+
+  app:
+    needs: verify_version
+    uses: ./.github/workflows/app-build.yml
+    secrets: inherit
+    with:
+      tag_name: ${{ github.ref_name }}
+      release_name: ${{ github.ref_name }}
+      release_body: "See the release notes below."
+      prerelease: false
+      release_draft: true
+      release_build: true
