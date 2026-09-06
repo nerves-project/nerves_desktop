@@ -8,7 +8,9 @@
 import Config
 
 config :nerves_desktop,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  # Set by the tagged release workflow; every other build is marked -dev
+  release_build?: System.get_env("NERVES_DESKTOP_RELEASE") == "1"
 
 # Configure the endpoint
 config :nerves_desktop, NervesDesktopWeb.Endpoint,

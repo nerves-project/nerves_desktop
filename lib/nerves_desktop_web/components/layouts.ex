@@ -53,7 +53,7 @@ defmodule NervesDesktopWeb.Layouts do
         <div class="border-t border-chassis-line/60 px-5 py-3">
           <p class="text-xs font-medium text-white">Nerves Desktop</p>
           <p class="mt-0.5 font-mono text-2xs text-chassis-text">
-            v{Application.spec(:nerves_desktop, :vsn)}
+            v{NervesDesktop.version()}
           </p>
         </div>
       </aside>
