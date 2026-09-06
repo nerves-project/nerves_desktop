@@ -250,8 +250,8 @@ defmodule NervesDesktopWeb.HomeLive do
               <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
                 <dt class="text-[13px] font-semibold">No network</dt>
                 <dd class="text-[13px] leading-relaxed text-muted">
-                  Connect the device over USB instead. It shows up here as a serial device
-                  and needs no network at all.
+                  Connect the device over USB instead. Nerves devices are configured as USB
+                  ethernet gadget by default, and will connect to your computer directly.
                 </dd>
               </div>
             </dl>
