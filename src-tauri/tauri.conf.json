@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Nerves Desktop",
-  "version": "0.1.0",
   "identifier": "org.nerves-project.NervesDesktop",
   "build": {
     "beforeBuildCommand": "mix do compile + assets.deploy + release --overwrite --path src-tauri/target/rel",

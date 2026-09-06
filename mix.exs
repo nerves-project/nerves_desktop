@@ -1,10 +1,14 @@
 defmodule NervesDesktop.MixProject do
   use Mix.Project
 
+  @version File.read!("VERSION") |> String.trim()
+
+  def version, do: @version
+
   def project do
     [
       app: :nerves_desktop,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -90,6 +94,7 @@ defmodule NervesDesktop.MixProject do
       ],
       precommit: [
         "compile --warnings-as-errors",
+        "version.check",
         "deps.unlock --unused",
         "format --check-formatted",
         "test"
