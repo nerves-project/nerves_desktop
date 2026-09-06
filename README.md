@@ -99,6 +99,50 @@ simultaneously:
 cargo tauri dev
 ```
 
+## Cutting a Release
+
+The `VERSION` file at the repository root is the single source of truth for the
+application version. `mix.exs` reads it directly, and Tauri inherits its version
+from `src-tauri/Cargo.toml`, which is kept in sync with it.
+
+Builds that were not cut from a tag report their version with a `-dev` suffix in
+the sidebar (`v0.1.0-dev`), so a nightly is always distinguishable from a
+release.
+
+### 1. Bump the version
+
+Edit `VERSION`, then propagate it to the files that cannot read it themselves:
+
+```bash
+mix version.sync
+```
+
+This rewrites the version in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`.
+`mix version.check` verifies the two agree and runs as part of `mix precommit`.
+
+### 2. Commit and tag
+
+The tag must match `VERSION` prefixed with `v`, or the release build fails
+before any platform is built:
+
+```bash
+git commit -am "Release v0.2.0"
+git tag v0.2.0
+git push origin main --tags
+```
+
+### 3. Publish
+
+Pushing the tag triggers
+[`release.yml`](.github/workflows/release.yml), which verifies the tag against
+`VERSION` and then builds every platform. The artifacts are attached to a
+**draft** release, so review them and write the release notes before publishing
+it from the GitHub releases page.
+
+Nightlies are unaffected: [`build.yml`](.github/workflows/build.yml) still runs
+on a schedule and publishes to the rolling `nightly` tag. Both share the build
+steps in [`app-build.yml`](.github/workflows/app-build.yml).
+
 ## Future Work
 
 Currently, this is an experiment to see if this is a useful resource for the
