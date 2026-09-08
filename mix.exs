@@ -70,7 +70,7 @@ defmodule NervesDesktop.MixProject do
       {:dns_cluster, "~> 0.3.0"},
       {:bandit, "~> 1.5"},
       {:elixirkit, "~> 0.1.0"},
-      {:nerves_discovery, "~> 0.1.2"},
+      {:nerves_discovery, "~> 0.1.5"},
       {:nerves_burner, github: "nerves-project/nerves_burner"},
       {:fwup, "~> 1.1"}
     ]
