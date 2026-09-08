@@ -1,6 +1,6 @@
 [package]
 name = "nerves_desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Desktop application for discovering and managing Nerves devices"
 authors = ["Nerves Project"]
 edition = "2021"
