@@ -1,22 +1,35 @@
+mod tray;
+
 use serde_json::json;
+use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
+
+#[derive(Default)]
+struct ServerPort(Mutex<Option<u16>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = app
-                .get_webview_window("main")
-                .expect("no main window")
-                .set_focus();
+            show_main_window(app);
         }))
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .manage(ServerPort::default())
+        .on_window_event(|window, event| {
+            // The app lives on in the tray, so closing the window only hides it.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
             let app_handle = app.handle().clone();
+            tray::create(&app_handle)?;
             let pubsub = elixirkit::PubSub::listen("tcp://127.0.0.1:0").expect("failed to listen");
             app.manage(pubsub.clone());
 
@@ -49,6 +62,8 @@ pub fn run() {
                         let _ =
                             pubsub_messages.broadcast("host_info", os_info.to_string().as_bytes());
 
+                        *app_handle_messages.state::<ServerPort>().0.lock().unwrap() = Some(port);
+
                         // Create the main window
                         create_window(&app_handle_messages, port);
                     } else if msg == b"open_file_dialog" {
@@ -70,6 +85,9 @@ pub fn run() {
                         );
                     }
                 });
+
+                let app_handle_tray = app_handle_clone.clone();
+                pubsub_inner.subscribe("tray", move |msg| tray::update(&app_handle_tray, msg));
 
                 // Subscription for opener messages
                 let app_handle_opener = app_handle_clone.clone();
@@ -93,8 +111,33 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                show_main_window(_app);
+            }
+        });
+}
+
+pub(crate) fn show_main_window(app_handle: &tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+pub(crate) fn open_path(app_handle: &tauri::AppHandle, path: &str) {
+    let port = *app_handle.state::<ServerPort>().0.lock().unwrap();
+
+    if let (Some(port), Some(window)) = (port, app_handle.get_webview_window("main")) {
+        if let Ok(url) = format!("http://127.0.0.1:{port}{path}").parse() {
+            let _ = window.navigate(url);
+        }
+        show_main_window(app_handle);
+    }
 }
 
 fn create_window(app_handle: &tauri::AppHandle, port: u16) {

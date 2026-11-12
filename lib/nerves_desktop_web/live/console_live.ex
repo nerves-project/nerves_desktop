@@ -57,7 +57,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
         |> assign(selected_name: name)
         |> prefill_password(target, new_device?)
         |> check_existing_connection(target)
-        |> maybe_prompt_connect()
+        |> connect_or_prompt(params)
       else
         socket
       end
@@ -72,6 +72,14 @@ defmodule NervesDesktopWeb.ConsoleLive do
       socket
     end
   end
+
+  # Arriving from the tray menu means the connection was already asked for.
+  defp connect_or_prompt(%{assigns: %{status: :disconnected}} = socket, %{"connect" => "true"}) do
+    if connected?(socket), do: send(self(), :connect)
+    socket
+  end
+
+  defp connect_or_prompt(socket, _params), do: maybe_prompt_connect(socket)
 
   defp maybe_prompt_connect(
          %{assigns: %{status: :disconnected, selected_target: target}} = socket
@@ -132,6 +140,13 @@ defmodule NervesDesktopWeb.ConsoleLive do
   defp push_print(socket, data) do
     b64_data = Base.encode64(data)
     push_event(socket, "print", %{data: b64_data})
+  end
+
+  @impl true
+  def handle_info(:connect, socket) do
+    socket.assigns.selected_target
+    |> validate_target()
+    |> perform_connection(socket)
   end
 
   @impl true
