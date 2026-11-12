@@ -3,7 +3,11 @@ defmodule NervesDesktopWeb.ResourcesLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Resources", resource_groups: nerves_resources())}
+    {:ok,
+     assign(socket,
+       page_title: "Resources",
+       resource_columns: [software_resources(), hardware_resources()]
+     )}
   end
 
   @impl true
@@ -21,54 +25,74 @@ defmodule NervesDesktopWeb.ResourcesLive do
         subtitle="The Nerves libraries, and where to ask when something breaks"
       />
 
-      <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 2xl:grid-cols-3">
-        <UI.panel :for={group <- @resource_groups} label={group.title} body_class="p-0">
-          <ul class="divide-y divide-rule">
-            <li :for={item <- group.links} class="px-4 py-3">
-              <p class="text-[13px] font-semibold">{item.name}</p>
-              <p :if={item[:desc]} class="mt-0.5 text-[13px] leading-relaxed text-muted">
-                {item.desc}
-              </p>
-
-              <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <button
-                  :if={item[:url]}
-                  phx-click="open_url"
-                  phx-value-url={item.url}
-                  class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  Open site <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
-                </button>
-                <button
-                  :if={item[:hex]}
-                  phx-click="open_url"
-                  phx-value-url={item.hex}
-                  class="inline-flex items-center gap-1 text-xs text-muted hover:text-primary hover:underline"
-                >
-                  <.icon name="hero-cube" class="size-3.5" /> Hex
-                </button>
-                <button
-                  :if={item[:github]}
-                  phx-click="open_url"
-                  phx-value-url={item.github}
-                  class="inline-flex items-center gap-1 text-xs text-muted hover:text-primary hover:underline"
-                >
-                  <.icon name="hero-code-bracket" class="size-3.5" /> GitHub
-                </button>
-              </div>
-            </li>
-          </ul>
-        </UI.panel>
+      <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+        <div :for={groups <- @resource_columns} class="flex flex-col gap-5">
+          <UI.panel :for={group <- groups} label={group.title} body_class="p-0">
+            <ul class="divide-y divide-rule">
+              <li :for={item <- group.links} class="px-4 py-2.5 text-[13px] leading-relaxed">
+                <%= if group[:inline] do %>
+                  <.title_link item={item} />
+                  <span :if={item[:desc]} class="ml-1 text-muted">{item.desc}</span>
+                <% else %>
+                  <div class="flex items-center gap-3">
+                    <.title_link item={item} />
+                    <div class="ml-auto flex shrink-0 items-center gap-3">
+                      <.source_link :if={item[:hex]} url={item.hex} icon="hero-cube" label="Hex" />
+                      <.source_link
+                        :if={item[:github]}
+                        url={item.github}
+                        icon="hero-code-bracket"
+                        label="GitHub"
+                      />
+                    </div>
+                  </div>
+                  <p :if={item[:desc]} class="text-muted">{item.desc}</p>
+                <% end %>
+              </li>
+            </ul>
+          </UI.panel>
+        </div>
       </div>
     </Layouts.app>
     """
   end
 
-  defp nerves_resources do
+  attr :item, :map, required: true
+
+  defp title_link(assigns) do
+    ~H"""
+    <button
+      phx-click="open_url"
+      phx-value-url={@item[:url] || @item[:hex] || @item[:github]}
+      class="min-w-0 break-words text-left font-semibold text-ink transition-colors hover:text-primary hover:underline"
+    >
+      {@item.name}
+    </button>
+    """
+  end
+
+  attr :url, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+
+  defp source_link(assigns) do
+    ~H"""
+    <button
+      phx-click="open_url"
+      phx-value-url={@url}
+      class="inline-flex items-center gap-1 text-xs text-muted transition-colors hover:text-primary hover:underline"
+    >
+      <.icon name={@icon} class="size-3.5" /> {@label}
+    </button>
+    """
+  end
+
+  defp software_resources do
     [
       %{
         title: "Community & Learning",
         icon: "hero-academic-cap",
+        inline: true,
         links: [
           %{
             name: "Nerves Discord",
@@ -206,6 +230,73 @@ defmodule NervesDesktopWeb.ResourcesLive do
           }
         ]
       },
+      %{
+        title: "Remote & System State",
+        icon: "hero-signal",
+        links: [
+          %{
+            name: "nerves_ssh",
+            github: "https://github.com/nerves-project/nerves_ssh",
+            hex: "https://hex.pm/packages/nerves_ssh",
+            desc: "SSH console support for Nerves devices."
+          },
+          %{
+            name: "ssh_subsystem_fwup",
+            github: "https://github.com/nerves-project/ssh_subsystem_fwup",
+            hex: "https://hex.pm/packages/ssh_subsystem_fwup",
+            desc: "Firmware update workflows over SSH."
+          },
+          %{
+            name: "alarmist",
+            github: "https://github.com/nerves-project/alarmist",
+            hex: "https://hex.pm/packages/alarmist",
+            desc: "Alarm handling for system conditions."
+          },
+          %{
+            name: "property_table",
+            github: "https://github.com/nerves-project/property_table",
+            hex: "https://hex.pm/packages/property_table",
+            desc: "In-memory key-value store with subscriptions."
+          }
+        ]
+      },
+      %{
+        title: "Infrastructure & Build",
+        icon: "hero-wrench-screwdriver",
+        links: [
+          %{
+            name: "Nerves Hub",
+            github: "https://github.com/nerves-hub",
+            desc: "Over-the-air (OTA) firmware update server."
+          },
+          %{
+            name: "fwup",
+            github: "https://github.com/fwup-home/fwup",
+            desc: "Configurable embedded firmware update utility."
+          },
+          %{
+            name: "toolchains",
+            github: "https://github.com/nerves-project/toolchains",
+            desc: "Cross-compilers for building Nerves firmware."
+          },
+          %{
+            name: "nerves_systems",
+            github: "https://github.com/nerves-project/nerves_systems",
+            desc: "Scripts for maintaining Nerves system repositories."
+          },
+          %{
+            name: "nerves_system_linter",
+            github: "https://github.com/nerves-project/nerves_system_linter",
+            hex: "https://hex.pm/packages/nerves_system_linter",
+            desc: "Validate Nerves system configuration files."
+          }
+        ]
+      }
+    ]
+  end
+
+  defp hardware_resources do
+    [
       %{
         title: "Raspberry Pi Targets",
         icon: "hero-device-tablet",
@@ -350,68 +441,6 @@ defmodule NervesDesktopWeb.ResourcesLive do
         ]
       },
       %{
-        title: "Infrastructure & Build",
-        icon: "hero-wrench-screwdriver",
-        links: [
-          %{
-            name: "Nerves Hub",
-            github: "https://github.com/nerves-hub",
-            desc: "Over-the-air (OTA) firmware update server."
-          },
-          %{
-            name: "fwup",
-            github: "https://github.com/fwup-home/fwup",
-            desc: "Configurable embedded firmware update utility."
-          },
-          %{
-            name: "toolchains",
-            github: "https://github.com/nerves-project/toolchains",
-            desc: "Cross-compilers for building Nerves firmware."
-          },
-          %{
-            name: "nerves_systems",
-            github: "https://github.com/nerves-project/nerves_systems",
-            desc: "Scripts for maintaining Nerves system repositories."
-          },
-          %{
-            name: "nerves_system_linter",
-            github: "https://github.com/nerves-project/nerves_system_linter",
-            hex: "https://hex.pm/packages/nerves_system_linter",
-            desc: "Validate Nerves system configuration files."
-          }
-        ]
-      },
-      %{
-        title: "Networking (Wireless)",
-        icon: "hero-wifi",
-        links: [
-          %{
-            name: "vintage_net_wifi",
-            github: "https://github.com/nerves-networking/vintage_net_wifi",
-            hex: "https://hex.pm/packages/vintage_net_wifi",
-            desc: "Wi-Fi support layer for VintageNet."
-          },
-          %{
-            name: "vintage_net_mobile",
-            github: "https://github.com/nerves-networking/vintage_net_mobile",
-            hex: "https://hex.pm/packages/vintage_net_mobile",
-            desc: "Cellular and mobile networking support."
-          },
-          %{
-            name: "vintage_net_wireguard",
-            github: "https://github.com/nerves-networking/vintage_net_wireguard",
-            hex: "https://hex.pm/packages/vintage_net_wireguard",
-            desc: "Adds WireGuard VPN support to the stack."
-          },
-          %{
-            name: "vintage_net_qmi",
-            github: "https://github.com/nerves-networking/vintage_net_qmi",
-            hex: "https://hex.pm/packages/vintage_net_qmi",
-            desc: "QMI modem integration for cellular networking."
-          }
-        ]
-      },
-      %{
         title: "Networking (Core)",
         icon: "hero-globe-alt",
         links: [
@@ -442,32 +471,32 @@ defmodule NervesDesktopWeb.ResourcesLive do
         ]
       },
       %{
-        title: "Remote & System State",
-        icon: "hero-signal",
+        title: "Networking (Wireless)",
+        icon: "hero-wifi",
         links: [
           %{
-            name: "nerves_ssh",
-            github: "https://github.com/nerves-project/nerves_ssh",
-            hex: "https://hex.pm/packages/nerves_ssh",
-            desc: "SSH console support for Nerves devices."
+            name: "vintage_net_wifi",
+            github: "https://github.com/nerves-networking/vintage_net_wifi",
+            hex: "https://hex.pm/packages/vintage_net_wifi",
+            desc: "Wi-Fi support layer for VintageNet."
           },
           %{
-            name: "ssh_subsystem_fwup",
-            github: "https://github.com/nerves-project/ssh_subsystem_fwup",
-            hex: "https://hex.pm/packages/ssh_subsystem_fwup",
-            desc: "Firmware update workflows over SSH."
+            name: "vintage_net_mobile",
+            github: "https://github.com/nerves-networking/vintage_net_mobile",
+            hex: "https://hex.pm/packages/vintage_net_mobile",
+            desc: "Cellular and mobile networking support."
           },
           %{
-            name: "alarmist",
-            github: "https://github.com/nerves-project/alarmist",
-            hex: "https://hex.pm/packages/alarmist",
-            desc: "Alarm handling for system conditions."
+            name: "vintage_net_wireguard",
+            github: "https://github.com/nerves-networking/vintage_net_wireguard",
+            hex: "https://hex.pm/packages/vintage_net_wireguard",
+            desc: "Adds WireGuard VPN support to the stack."
           },
           %{
-            name: "property_table",
-            github: "https://github.com/nerves-project/property_table",
-            hex: "https://hex.pm/packages/property_table",
-            desc: "In-memory key-value store with subscriptions."
+            name: "vintage_net_qmi",
+            github: "https://github.com/nerves-networking/vintage_net_qmi",
+            hex: "https://hex.pm/packages/vintage_net_qmi",
+            desc: "QMI modem integration for cellular networking."
           }
         ]
       }
