@@ -3,6 +3,7 @@ defmodule NervesDesktop.DeviceScanner do
   require Logger
 
   alias NervesDesktop.Device
+  alias NervesDesktop.Tray
 
   @topic "discovery"
   @scan_interval :timer.seconds(10)
@@ -41,8 +42,11 @@ defmodule NervesDesktop.DeviceScanner do
   end
 
   @impl true
-  def handle_info({ref, devices}, state) when is_reference(ref) do
+  def handle_info({ref, found}, state) when is_reference(ref) do
     Process.demonitor(ref, [:flush])
+    Tray.update(found)
+
+    devices = Enum.reject(found, &other_host?/1)
     broadcast_devices(devices)
 
     state = %{state | devices: devices, scanning: false}
@@ -68,7 +72,7 @@ defmodule NervesDesktop.DeviceScanner do
 
   defp start_scan(state) do
     Task.Supervisor.async_nolink(NervesDesktop.TaskSupervisor, fn ->
-      network_devices = NervesDiscovery.discover() |> Enum.map(&Device.from_network/1)
+      network_devices = NervesDiscovery.discover(all: true) |> Enum.map(&Device.from_network/1)
       uart_devices = Circuits.UART.enumerate() |> Device.from_uart()
 
       network_devices ++ uart_devices
@@ -76,6 +80,9 @@ defmodule NervesDesktop.DeviceScanner do
 
     %{state | scanning: true, timer: nil}
   end
+
+  # Any machine advertising SSH is found, but only the tray menu lists the non-Nerves ones.
+  defp other_host?(device), do: device.type == :network and not device.nerves?
 
   defp schedule_scan(state, ms \\ @scan_interval) do
     if state.timer, do: Process.cancel_timer(state.timer)
