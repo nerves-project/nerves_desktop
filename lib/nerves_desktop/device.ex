@@ -11,6 +11,17 @@ defmodule NervesDesktop.Device do
 
   @vids Map.keys(@chip_mappings)
 
+  @advertised [
+    :serial,
+    :version,
+    :product,
+    :description,
+    :platform,
+    :architecture,
+    :author,
+    :uuid
+  ]
+
   def format_address(addr) when is_tuple(addr) do
     case :inet.ntoa(addr) do
       {:error, _reason} -> ""
@@ -46,11 +57,23 @@ defmodule NervesDesktop.Device do
       target: target,
       ip: display_ip,
       type: :network,
+      nerves?: nerves?(device),
       product: device[:product],
       version: device[:version],
       platform: device[:platform]
     })
   end
+
+  # Only Nerves firmware advertises these fields, and its default hostname is nerves-xxxx.
+  defp nerves?(device) do
+    Enum.any?(@advertised, &device[&1]) or nerves_name?(device[:hostname]) or
+      nerves_name?(device[:name])
+  end
+
+  defp nerves_name?(name) when is_binary(name),
+    do: name |> String.downcase() |> String.starts_with?("nerves")
+
+  defp nerves_name?(_name), do: false
 
   def from_uart(enumerate_output) do
     enumerate_output
@@ -67,6 +90,7 @@ defmodule NervesDesktop.Device do
         hostname: port,
         target: port,
         type: :uart,
+        nerves?: false,
         ip: nil,
         product: info[:description] || chip_name,
         version: nil,

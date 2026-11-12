@@ -15,6 +15,19 @@ defmodule NervesDesktopWeb.ConsoleLiveTest do
     assert has_element?(view, "#connection-form input[type=password][value='']")
   end
 
+  test "waits for Connect when a device is only selected", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/console?target=nowhere.invalid&name=nowhere")
+
+    refute has_element?(view, "#flash-error")
+  end
+
+  test "attempts the connection straight away when asked to", %{conn: conn} do
+    {:ok, view, _html} =
+      live(conn, ~p"/console?target=nowhere.invalid&name=nowhere&connect=true")
+
+    assert has_element?(view, "#flash-error")
+  end
+
   describe "prefilling a known image's password" do
     setup %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/console")
