@@ -19,6 +19,7 @@ defmodule NervesDesktopWeb.Router do
 
     live "/", HomeLive
     live "/console", ConsoleLive
+    live "/mcp/log", McpLogLive
     live "/burner", BurnerLive
     live "/resources", ResourcesLive
     live "/settings", SettingsLive
