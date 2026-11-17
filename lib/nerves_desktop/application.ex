@@ -20,6 +20,7 @@ defmodule NervesDesktop.Application do
       NervesDesktop.Firmware.UpdateSupervisor,
       {NervesDesktop.Firmware.ReleaseIndex, []},
       {NervesDesktop.HostInfo, []},
+      {NervesDesktop.MCP, Application.get_env(:nerves_desktop, NervesDesktop.MCP, [])},
       NervesDesktopWeb.Endpoint,
       {Task,
        fn ->

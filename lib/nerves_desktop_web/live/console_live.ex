@@ -6,17 +6,20 @@ defmodule NervesDesktopWeb.ConsoleLive do
   alias NervesDesktop.ConnectionSupervisor
   alias NervesDesktop.Connections.{ErlangSSH, SystemSSH, UART}
   alias NervesDesktop.Firmware.Catalog
+  alias NervesDesktop.MCP
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "discovery")
+      Phoenix.PubSub.subscribe(NervesDesktop.PubSub, MCP.topic())
     end
 
     {:ok,
      socket
      |> assign(page_title: "Console")
      |> assign(devices: NervesDesktop.DeviceScanner.get_devices())
+     |> assign(mcp: MCP.servers())
      |> assign(connection_pid: nil)
      |> assign(connection_module: nil)
      |> assign(status: :disconnected)
@@ -140,6 +143,11 @@ defmodule NervesDesktopWeb.ConsoleLive do
   end
 
   @impl true
+  def handle_info({:mcp_changed, servers}, socket) do
+    {:noreply, assign(socket, mcp: servers)}
+  end
+
+  @impl true
   def handle_info({:connection_output, target, data}, socket) do
     if socket.assigns.selected_target == target do
       {:noreply, push_print(socket, data)}
@@ -227,10 +235,16 @@ defmodule NervesDesktopWeb.ConsoleLive do
     {:noreply, socket}
   end
 
-  defp backend_name(ErlangSSH), do: "Erlang SSH"
-  defp backend_name(SystemSSH), do: "System SSH"
-  defp backend_name(UART), do: "Serial"
-  defp backend_name(module), do: module |> Module.split() |> List.last()
+  defp backend_name(ErlangSSH, _shared?), do: "Erlang SSH"
+  defp backend_name(SystemSSH, _shared?), do: "System SSH"
+  defp backend_name(UART, true), do: "Serial via MCP"
+  defp backend_name(UART, false), do: "Serial"
+  defp backend_name(module, _shared?), do: module |> Module.split() |> List.last()
+
+  defp shared_with_mcp?(assigns) do
+    assigns.status == :connected and assigns.connection_module == UART and
+      is_map_key(assigns.mcp, assigns.selected_target)
+  end
 
   # Choosing a different device offers that image's documented password;
   # editing the field for the device already chosen leaves the typing alone.
@@ -322,6 +336,8 @@ defmodule NervesDesktopWeb.ConsoleLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, shared?: shared_with_mcp?(assigns))
+
     ~H"""
     <Layouts.app flash={@flash} active_tab={:console}>
       <UI.page_header title="Console" subtitle="A live shell on the board, over SSH or serial">
@@ -351,6 +367,15 @@ defmodule NervesDesktopWeb.ConsoleLive do
           <span>
             This session skips host key verification, so it cannot tell you if something
             else answered instead of your board. Use it on networks you control.
+          </span>
+        </div>
+
+        <div :if={@shared?} id="console-mcp-note" class="nd-note nd-note-info mt-4">
+          <.icon name="hero-information-circle" class="mt-px size-4 shrink-0 text-primary" />
+          <span>
+            This board's MCP server holds the serial port, so the console runs through it.
+            What an agent sends and the replies it reads are left out, and the prompt
+            number can jump after it has been at work.
           </span>
         </div>
 
@@ -394,7 +419,7 @@ defmodule NervesDesktopWeb.ConsoleLive do
                 :if={@connection_module}
                 class="font-mono text-2xs tracking-wider text-white/60 uppercase"
               >
-                {backend_name(@connection_module)}
+                {backend_name(@connection_module, @shared?)}
               </span>
               <button
                 type="button"

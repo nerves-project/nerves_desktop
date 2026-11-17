@@ -7,6 +7,12 @@ config :nerves_desktop, NervesDesktopWeb.Endpoint,
   secret_key_base: "4zQWNCEeIMRtfeiyIv5x52S+jnKyYWst29iR03G226szLk3qMqkuZLJkT6pJxRuN",
   server: false
 
+# Keep test MCP servers off the real ports and out of the user's saved state
+config :nerves_desktop, NervesDesktop.MCP,
+  path: nil,
+  ports: 23_600..23_699,
+  log_dir: Path.join([System.tmp_dir!(), "nerves_desktop_test", "mcp"])
+
 # In test we don't send emails
 config :nerves_desktop, NervesDesktop.Mailer, adapter: Swoosh.Adapters.Test
 
