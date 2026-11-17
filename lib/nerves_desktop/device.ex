@@ -20,6 +20,13 @@ defmodule NervesDesktop.Device do
 
   def format_address(_addr), do: ""
 
+  def nerves?(device), do: :nerves in (device[:tags] || [])
+
+  def nerves_first(devices) do
+    {nerves, other} = Enum.split_with(devices, &nerves?/1)
+    nerves ++ other
+  end
+
   def from_network(device) do
     addresses =
       (device[:addresses] || [])
@@ -67,6 +74,7 @@ defmodule NervesDesktop.Device do
         hostname: port,
         target: port,
         type: :uart,
+        tags: [:nerves],
         ip: nil,
         product: info[:description] || chip_name,
         version: nil,
