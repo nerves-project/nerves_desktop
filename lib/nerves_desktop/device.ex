@@ -31,6 +31,13 @@ defmodule NervesDesktop.Device do
 
   def format_address(_addr), do: ""
 
+  def unknown?(device), do: device[:type] == :network and device[:nerves?] != true
+
+  def nerves_first(devices) do
+    {unknown, known} = Enum.split_with(devices, &unknown?/1)
+    known ++ unknown
+  end
+
   def from_network(device) do
     addresses =
       (device[:addresses] || [])
@@ -66,8 +73,8 @@ defmodule NervesDesktop.Device do
 
   # Only Nerves firmware advertises these fields, and its default hostname is nerves-xxxx.
   defp nerves?(device) do
-    Enum.any?(@advertised, &device[&1]) or nerves_name?(device[:hostname]) or
-      nerves_name?(device[:name])
+    :nerves in (device[:tags] || []) or Enum.any?(@advertised, &device[&1]) or
+      nerves_name?(device[:hostname]) or nerves_name?(device[:name])
   end
 
   defp nerves_name?(name) when is_binary(name),

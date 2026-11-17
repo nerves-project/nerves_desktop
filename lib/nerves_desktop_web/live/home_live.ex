@@ -30,6 +30,7 @@ defmodule NervesDesktopWeb.HomeLive do
      |> assign(native?: Native.available?())
      |> assign(updates: UpdateSession.active())
      |> assign(update_sources: %{})
+     |> assign(show_all?: false)
      |> put_devices(devices)}
   end
 
@@ -82,6 +83,11 @@ defmodule NervesDesktopWeb.HomeLive do
   def handle_event("scan_now", _params, socket) do
     NervesDesktop.DeviceScanner.scan_now()
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_show_all", _params, socket) do
+    {:noreply, socket |> update(:show_all?, &(!&1)) |> assign_groups()}
   end
 
   @impl true
@@ -151,8 +157,16 @@ defmodule NervesDesktopWeb.HomeLive do
   defp put_devices(socket, devices) do
     socket
     |> assign(devices: devices)
+    |> assign_groups()
     |> assign(firmware_status: ReleaseIndex.statuses(devices))
     |> retire_finished_updates(devices)
+  end
+
+  defp assign_groups(socket) do
+    {other, nerves} = Enum.split_with(socket.assigns.devices, &NervesDesktop.Device.unknown?/1)
+    visible = if socket.assigns.show_all?, do: nerves ++ other, else: nerves
+
+    assign(socket, nerves_devices: nerves, other_devices: other, visible_devices: visible)
   end
 
   # A rebooting device drops off the network and comes back. Watching for that
@@ -209,22 +223,35 @@ defmodule NervesDesktopWeb.HomeLive do
     <Layouts.app flash={@flash} active_tab={:devices}>
       <UI.page_header
         title="Devices"
-        subtitle={device_summary(@devices)}
+        subtitle={device_summary(@nerves_devices)}
       >
         <:actions>
           <UI.scanning_status last_scan_at={@last_scan_at} on_refresh="scan_now" />
         </:actions>
       </UI.page_header>
 
-      <%= if Enum.empty?(@devices) do %>
+      <%= if @visible_devices == [] do %>
         <UI.panel body_class="p-0">
           <div class="flex flex-col items-center px-6 py-10 text-center">
             <.icon name="hero-cpu-chip" class="size-9 text-rule-strong" />
-            <h2 class="mt-3 font-display text-lg font-semibold">No devices found</h2>
-            <p class="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted">
-              Nothing has responded on your network or on a serial port. Scanning keeps
-              running, so a device will appear here as soon as it answers.
-            </p>
+            <%= if @other_devices == [] do %>
+              <h2 class="mt-3 font-display text-lg font-semibold">No devices found</h2>
+              <p class="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted">
+                Nothing has responded on your network or on a serial port. Scanning keeps
+                running, so a device will appear here as soon as it answers.
+              </p>
+            <% else %>
+              <h2 class="mt-3 font-display text-lg font-semibold">No Nerves devices found</h2>
+              <p class="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted">
+                Other devices on your network answered, but none of them look like a Nerves
+                device. If yours uses a custom hostname, it is among them.
+              </p>
+              <.unknown_toggle
+                count={length(@other_devices)}
+                expanded={@show_all?}
+                class="nd-btn-secondary mt-4"
+              />
+            <% end %>
           </div>
 
           <div class="border-t border-rule px-5 py-4">
@@ -245,6 +272,15 @@ defmodule NervesDesktopWeb.HomeLive do
                 <dd class="text-[13px] leading-relaxed text-muted">
                   A device only answers once its network is up, which is a few seconds after
                   you power it on.
+                </dd>
+              </div>
+              <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
+                <dt class="text-[13px] font-semibold">Hostname</dt>
+                <dd class="text-[13px] leading-relaxed text-muted">
+                  A device is recognised as Nerves when its hostname starts with
+                  <UI.code text="nerves-" /> or it advertises the
+                  <UI.code text="_nerves-device._tcp" />
+                  mDNS service. Anything else is listed as unknown.
                 </dd>
               </div>
               <div class="grid grid-cols-[7.5rem_1fr] gap-4 py-3">
@@ -274,90 +310,44 @@ defmodule NervesDesktopWeb.HomeLive do
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-rule">
-                <tr :for={device <- @devices} class="group transition-colors hover:bg-sunk">
-                  <td class="px-4 py-3">
-                    <div class="font-semibold">{device[:name]}</div>
-                    <UI.copyable value={device[:hostname]} class="mt-0.5" />
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <span class={[
-                        "nd-chip",
-                        (device[:type] == :uart && "nd-chip-serial") || "nd-chip-signal"
-                      ]}>
-                        <span class="nd-led"></span>
-                        {if device[:type] == :uart, do: "Serial", else: "Network"}
-                      </span>
-                      <UI.copyable value={device[:ip] || device[:target]} />
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <span class="text-[13px] font-semibold">{device[:product] || "Unknown"}</span>
-                      <span
-                        :if={match?({:stale, _}, @firmware_status[device[:id]])}
-                        class="nd-chip nd-chip-caution"
-                      >
-                        {elem(@firmware_status[device[:id]], 1)} available
-                      </span>
-                    </div>
-                    <div class="mt-0.5 flex items-center gap-1.5 font-mono text-xs whitespace-nowrap text-muted">
-                      <span>{device[:version] || "no version"}</span>
-                      <span :if={device[:platform]} class="text-rule-strong">/</span>
-                      <span :if={device[:platform]}>{device[:platform]}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div :if={@updates[device[:id]]} class="min-w-48">
-                      <.update_progress
-                        progress={@updates[device[:id]]}
-                        id={device[:id]}
-                        target={device[:name] || device[:target]}
-                      />
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <.link
-                        navigate={
-                          ~p"/console?target=#{device[:target]}&name=#{device[:name] || device[:hostname]}"
-                        }
-                        class="nd-btn nd-btn-secondary group-hover:border-primary"
-                      >
-                        <.icon name="hero-command-line" class="size-4" /> Open console
-                      </.link>
-
-                      <UI.menu
-                        :if={device[:type] == :network}
-                        id={device[:id]}
-                        open={@open_menu == device[:id]}
-                        label={"Actions for #{device[:name]}"}
-                      >
-                        <.catalog_item device={device} status={@firmware_status[device[:id]]} />
-                        <button
-                          type="button"
-                          role="menuitem"
-                          phx-click="update_from_file"
-                          phx-value-id={device[:id]}
-                          disabled={!@native?}
-                          title={!@native? && "Choosing a file needs the desktop app"}
-                          class="nd-menu-item"
-                        >
-                          <.icon name="hero-document-arrow-up" class="size-4" /> Update from file…
-                        </button>
-                      </UI.menu>
-                    </div>
-                  </td>
+              <tbody id="nerves-devices" class="divide-y divide-rule">
+                <.device_row
+                  :for={device <- @nerves_devices}
+                  device={device}
+                  status={@firmware_status[device[:id]]}
+                  progress={@updates[device[:id]]}
+                  menu_open={@open_menu == device[:id]}
+                  native={@native?}
+                />
+              </tbody>
+              <tbody
+                :if={@show_all? and @other_devices != []}
+                id="unknown-devices"
+                class="divide-y divide-rule border-t border-rule"
+              >
+                <tr>
+                  <td colspan="5" class="nd-label bg-sunk px-4 py-1.5">Unknown devices</td>
                 </tr>
+                <.device_row
+                  :for={device <- @other_devices}
+                  device={device}
+                  status={@firmware_status[device[:id]]}
+                  progress={@updates[device[:id]]}
+                  menu_open={@open_menu == device[:id]}
+                  native={@native?}
+                />
               </tbody>
             </table>
+          </div>
+
+          <div :if={@other_devices != []} class="border-t border-rule px-3 py-2">
+            <.unknown_toggle count={length(@other_devices)} expanded={@show_all?} />
           </div>
         </UI.panel>
       <% end %>
 
       <UI.panel
-        :if={any_details_missing?(@devices)}
+        :if={any_details_missing?(@visible_devices)}
         label="Some devices aren't reporting firmware details"
         body_class="p-5"
       >
@@ -380,6 +370,118 @@ defmodule NervesDesktopWeb.HomeLive do
     </Layouts.app>
     """
   end
+
+  attr :device, :map, required: true
+  attr :status, :any, default: nil
+  attr :progress, :map, default: nil
+  attr :menu_open, :boolean, default: false
+  attr :native, :boolean, default: false
+
+  defp device_row(assigns) do
+    ~H"""
+    <tr class="group transition-colors hover:bg-sunk">
+      <td class="px-4 py-3">
+        <div class="font-semibold">{@device[:name]}</div>
+        <UI.copyable value={@device[:hostname]} class="mt-0.5" />
+      </td>
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          <span class={[
+            "nd-chip",
+            (@device[:type] == :uart && "nd-chip-serial") || "nd-chip-signal"
+          ]}>
+            <span class="nd-led"></span>
+            {if @device[:type] == :uart, do: "Serial", else: "Network"}
+          </span>
+          <UI.copyable value={@device[:ip] || @device[:target]} />
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+          <span class="text-[13px] font-semibold">{@device[:product] || "Unknown"}</span>
+          <span
+            :if={match?({:stale, _}, @status)}
+            class="nd-chip nd-chip-caution"
+          >
+            {elem(@status, 1)} available
+          </span>
+        </div>
+        <div class="mt-0.5 flex items-center gap-1.5 font-mono text-xs whitespace-nowrap text-muted">
+          <span>{@device[:version] || "no version"}</span>
+          <span :if={@device[:platform]} class="text-rule-strong">/</span>
+          <span :if={@device[:platform]}>{@device[:platform]}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div :if={@progress} class="min-w-48">
+          <.update_progress
+            progress={@progress}
+            id={@device[:id]}
+            target={@device[:name] || @device[:target]}
+          />
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="flex items-center justify-end gap-1.5">
+          <.link
+            navigate={
+              ~p"/console?target=#{@device[:target]}&name=#{@device[:name] || @device[:hostname]}"
+            }
+            class="nd-btn nd-btn-secondary group-hover:border-primary"
+          >
+            <.icon name="hero-command-line" class="size-4" /> Open console
+          </.link>
+
+          <UI.menu
+            :if={@device[:type] == :network}
+            id={@device[:id]}
+            open={@menu_open}
+            label={"Actions for #{@device[:name]}"}
+          >
+            <.catalog_item device={@device} status={@status} />
+            <button
+              type="button"
+              role="menuitem"
+              phx-click="update_from_file"
+              phx-value-id={@device[:id]}
+              disabled={!@native}
+              title={!@native && "Choosing a file needs the desktop app"}
+              class="nd-menu-item"
+            >
+              <.icon name="hero-document-arrow-up" class="size-4" /> Update from file…
+            </button>
+          </UI.menu>
+        </div>
+      </td>
+    </tr>
+    """
+  end
+
+  attr :count, :integer, required: true
+  attr :expanded, :boolean, default: false
+  attr :class, :any, default: "nd-btn-ghost h-7 text-xs"
+
+  defp unknown_toggle(assigns) do
+    ~H"""
+    <button
+      id="toggle-unknown-devices"
+      type="button"
+      phx-click="toggle_show_all"
+      aria-expanded={to_string(@expanded)}
+      class={["nd-btn", @class]}
+    >
+      <.icon
+        name="hero-chevron-down"
+        class={["size-3.5 transition-transform duration-200", @expanded && "rotate-180"]}
+      />
+      {toggle_label(@expanded, @count)}
+    </button>
+    """
+  end
+
+  defp toggle_label(true, _count), do: "Hide unknown devices"
+  defp toggle_label(false, 1), do: "Show all (1 unknown device)"
+  defp toggle_label(false, count), do: "Show all (#{count} unknown devices)"
 
   attr :device, :map, required: true
   attr :status, :any, default: nil
