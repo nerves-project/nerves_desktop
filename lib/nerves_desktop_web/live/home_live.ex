@@ -151,6 +151,7 @@ defmodule NervesDesktopWeb.HomeLive do
   defp put_devices(socket, devices) do
     socket
     |> assign(devices: devices)
+    |> assign(newest_arrival_at: newest_arrival_at(devices))
     |> assign(firmware_status: ReleaseIndex.statuses(devices))
     |> retire_finished_updates(devices)
   end
@@ -266,6 +267,7 @@ defmodule NervesDesktopWeb.HomeLive do
                   <th class="nd-label px-4 py-2">Device</th>
                   <th class="nd-label px-4 py-2">Address</th>
                   <th class="nd-label px-4 py-2">Firmware</th>
+                  <th class="nd-label px-4 py-2">Found</th>
                   <th class="nd-label px-4 py-2">
                     <span class="sr-only">Update progress</span>
                   </th>
@@ -275,9 +277,21 @@ defmodule NervesDesktopWeb.HomeLive do
                 </tr>
               </thead>
               <tbody class="divide-y divide-rule">
-                <tr :for={device <- @devices} class="group transition-colors hover:bg-sunk">
+                <tr
+                  :for={device <- @devices}
+                  data-new-device={newest_arrival?(device, @newest_arrival_at)}
+                  class="group transition-colors hover:bg-sunk"
+                >
                   <td class="px-4 py-3">
-                    <div class="font-semibold">{device[:name]}</div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold">{device[:name]}</span>
+                      <span
+                        :if={newest_arrival?(device, @newest_arrival_at)}
+                        class="nd-chip nd-chip-live"
+                      >
+                        <span class="nd-led"></span> New
+                      </span>
+                    </div>
                     <UI.copyable value={device[:hostname]} class="mt-0.5" />
                   </td>
                   <td class="px-4 py-3">
@@ -307,6 +321,9 @@ defmodule NervesDesktopWeb.HomeLive do
                       <span :if={device[:platform]} class="text-rule-strong">/</span>
                       <span :if={device[:platform]}>{device[:platform]}</span>
                     </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <.found_at :if={device[:first_seen_at]} device={device} now={@last_scan_at} />
                   </td>
                   <td class="px-4 py-3">
                     <div :if={@updates[device[:id]]} class="min-w-48">
@@ -500,6 +517,49 @@ defmodule NervesDesktopWeb.HomeLive do
       is_nil(device[:product]) or is_nil(device[:version]) or is_nil(device[:platform])
     end)
   end
+
+  attr :device, :map, required: true
+  attr :now, DateTime, required: true
+
+  defp found_at(assigns) do
+    ~H"""
+    <div class={[
+      "text-[13px] whitespace-nowrap",
+      if(@device[:found_at_launch?], do: "text-muted", else: "font-semibold")
+    ]}>
+      {found_label(@device, @now)}
+    </div>
+    <time
+      id={"found-#{@device[:id]}"}
+      datetime={DateTime.to_iso8601(@device[:first_seen_at])}
+      phx-hook="LocalTime"
+      class="mt-0.5 block font-mono text-xs tabular-nums text-muted"
+    >
+      {Calendar.strftime(@device[:first_seen_at], "%H:%M:%S")}
+    </time>
+    """
+  end
+
+  defp found_label(%{found_at_launch?: true}, _now), do: "At launch"
+
+  defp found_label(device, now) do
+    case DateTime.diff(now, device.first_seen_at, :minute) do
+      minutes when minutes < 1 -> "Just now"
+      minutes when minutes < 60 -> "#{minutes} min ago"
+      minutes -> "#{div(minutes, 60)} h ago"
+    end
+  end
+
+  # Devices that arrive in the same scan share a timestamp, so they are all new.
+  defp newest_arrival_at(devices) do
+    devices
+    |> Enum.filter(&(&1[:found_at_launch?] == false))
+    |> Enum.map(& &1.first_seen_at)
+    |> Enum.max(DateTime, fn -> nil end)
+  end
+
+  defp newest_arrival?(_device, nil), do: false
+  defp newest_arrival?(device, newest), do: device[:first_seen_at] == newest
 
   defp device_summary([]), do: "Scanning the network and your serial ports"
   defp device_summary([_]), do: "1 device found"

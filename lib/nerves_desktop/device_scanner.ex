@@ -3,6 +3,7 @@ defmodule NervesDesktop.DeviceScanner do
   require Logger
 
   alias NervesDesktop.Device
+  alias NervesDesktop.Sightings
 
   @topic "discovery"
   @scan_interval :timer.seconds(10)
@@ -21,7 +22,7 @@ defmodule NervesDesktop.DeviceScanner do
 
   @impl true
   def init(_opts) do
-    state = %{devices: [], scanning: false, timer: nil}
+    state = %{devices: [], sightings: Sightings.new(), scanning: false, timer: nil}
     {:ok, schedule_scan(state, 0)}
   end
 
@@ -43,9 +44,11 @@ defmodule NervesDesktop.DeviceScanner do
   @impl true
   def handle_info({ref, devices}, state) when is_reference(ref) do
     Process.demonitor(ref, [:flush])
+    {devices, sightings} = Sightings.stamp(state.sightings, devices)
+    devices = Sightings.newest_first(devices)
     broadcast_devices(devices)
 
-    state = %{state | devices: devices, scanning: false}
+    state = %{state | devices: devices, sightings: sightings, scanning: false}
     {:noreply, schedule_scan(state)}
   end
 
