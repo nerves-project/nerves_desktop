@@ -68,10 +68,10 @@ defmodule NervesDesktop.DeviceScanner do
 
   defp start_scan(state) do
     Task.Supervisor.async_nolink(NervesDesktop.TaskSupervisor, fn ->
-      network_devices = NervesDiscovery.discover() |> Enum.map(&Device.from_network/1)
+      network_devices = NervesDiscovery.discover(filter: nil) |> Enum.map(&Device.from_network/1)
       uart_devices = Circuits.UART.enumerate() |> Device.from_uart()
 
-      network_devices ++ uart_devices
+      Device.nerves_first(network_devices ++ uart_devices)
     end)
 
     %{state | scanning: true, timer: nil}

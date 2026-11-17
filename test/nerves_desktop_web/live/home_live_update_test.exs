@@ -39,6 +39,7 @@ defmodule NervesDesktopWeb.HomeLiveUpdateTest do
       target: "pi.local",
       hostname: "pi.local",
       type: :network,
+      tags: [:nerves],
       product: "circuits_quickstart",
       platform: "rpi0_2",
       version: "0.16.2",
@@ -60,7 +61,13 @@ defmodule NervesDesktopWeb.HomeLiveUpdateTest do
   test "a device that never returns does not leave the bar running", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    device = %{id: "network:gone.local", name: "gone", target: "gone.local", type: :network}
+    device = %{
+      id: "network:gone.local",
+      name: "gone",
+      target: "gone.local",
+      type: :network,
+      tags: [:nerves]
+    }
 
     send(view.pid, {:devices_updated, [device]})
     send(view.pid, {:update_progress, device.id, %{phase: :rebooting, percent: 100, error: nil}})

@@ -36,4 +36,29 @@ defmodule NervesDesktop.DeviceTest do
   test "uart devices with unknown vendors are filtered out" do
     assert Device.from_uart([{"/dev/ttyUSB0", %{vendor_id: 0x9999}}]) == []
   end
+
+  test "network devices keep their tags from discovery" do
+    printer = Device.from_network(%{hostname: "printer.local", addresses: [], tags: []})
+    pi = Device.from_network(%{hostname: "nerves-1234.local", addresses: [], tags: [:nerves]})
+
+    refute Device.nerves?(printer)
+    assert Device.nerves?(pi)
+  end
+
+  test "devices without tags are not Nerves devices" do
+    refute Device.nerves?(%{name: "printer"})
+  end
+
+  test "uart devices count as Nerves devices" do
+    [device] = Device.from_uart([{"/dev/ttyUSB0", %{vendor_id: 0x0403}}])
+    assert Device.nerves?(device)
+  end
+
+  test "nerves_first moves unknown devices last and keeps each group's order" do
+    printer = %{name: "printer", tags: []}
+    a = %{name: "nerves-a", tags: [:nerves]}
+    b = %{name: "nerves-b", tags: [:nerves]}
+
+    assert Device.nerves_first([printer, a, b]) == [a, b, printer]
+  end
 end
