@@ -72,7 +72,8 @@ defmodule NervesDesktop.MixProject do
       {:elixirkit, "~> 0.1.0"},
       {:nerves_discovery, "~> 0.1.7"},
       {:nerves_burner, github: "nerves-project/nerves_burner"},
-      {:fwup, "~> 1.1"}
+      {:fwup, "~> 1.1"},
+      {:nerves_mcp, "~> 0.1"}
     ]
   end
 
