@@ -54,6 +54,31 @@ let Hooks = {
       this.el.style.left = `${Math.max(gap * 2, anchor.right - panel.width)}px`
     }
   },
+  // Shows a panel while its trigger is hovered or focused. The panel is fixed
+  // to the viewport for the same reason as MenuPanel: the table would clip it.
+  HoverPanel: {
+    mounted() {
+      this.open = false
+      const set = (open) => () => { this.open = open; this.place() }
+      this.el.addEventListener("mouseenter", set(true))
+      this.el.addEventListener("focusin", set(true))
+      this.el.addEventListener("mouseleave", set(false))
+      this.el.addEventListener("focusout", set(false))
+    },
+    updated() { this.place() },
+    place() {
+      const panel = this.el.querySelector("[data-panel]")
+      panel.hidden = !this.open
+      if (!this.open) { return }
+
+      const anchor = this.el.getBoundingClientRect()
+      const height = panel.getBoundingClientRect().height
+      const flipped = anchor.bottom + height > window.innerHeight
+
+      panel.style.top = `${flipped ? anchor.top - height : anchor.bottom}px`
+      panel.style.left = `${anchor.left}px`
+    }
+  },
   TauriOpen: {
     mounted() {
       this.el.addEventListener("click", (e) => {

@@ -6,6 +6,7 @@ defmodule NervesDesktopWeb.HomeLive do
   alias NervesDesktop.Firmware.UpdateSession
   alias NervesDesktop.Firmware.UpdateSupervisor
   alias NervesDesktop.Connections.SSHError
+  alias NervesDesktop.MCP
   alias NervesDesktop.Native
 
   @impl true
@@ -15,6 +16,7 @@ defmodule NervesDesktopWeb.HomeLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "discovery")
       Phoenix.PubSub.subscribe(NervesDesktop.PubSub, "releases")
+      Phoenix.PubSub.subscribe(NervesDesktop.PubSub, MCP.topic())
       Native.subscribe("file_dialog_result")
       # An upload outlives this page, so pick up any already in flight.
       Enum.each(Map.keys(UpdateSession.active()), &subscribe_to_updates/1)
@@ -30,6 +32,7 @@ defmodule NervesDesktopWeb.HomeLive do
      |> assign(native?: Native.available?())
      |> assign(updates: UpdateSession.active())
      |> assign(update_sources: %{})
+     |> assign(mcp: MCP.servers())
      |> put_devices(devices)}
   end
 
@@ -61,6 +64,11 @@ defmodule NervesDesktopWeb.HomeLive do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info({:mcp_changed, servers}, socket) do
+    {:noreply, assign(socket, mcp: servers)}
   end
 
   # The Tauri file dialog answers with the chosen path.
@@ -118,6 +126,24 @@ defmodule NervesDesktopWeb.HomeLive do
     Native.broadcast("messages", "open_file_dialog")
 
     {:noreply, socket |> assign(open_menu: nil) |> assign(awaiting_file: device)}
+  end
+
+  @impl true
+  def handle_event("start_mcp", %{"id" => id}, socket) do
+    socket = assign(socket, open_menu: nil)
+
+    with %{} = device <- find_device(socket, id),
+         {:error, reason} <- MCP.start_server(device) do
+      {:noreply, put_flash(socket, :error, "Could not start the MCP server: #{inspect(reason)}")}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("stop_mcp", %{"id" => id}, socket) do
+    if device = find_device(socket, id), do: MCP.stop_server(device[:target])
+    {:noreply, assign(socket, open_menu: nil)}
   end
 
   @impl true
@@ -291,6 +317,16 @@ defmodule NervesDesktopWeb.HomeLive do
                       </span>
                       <UI.copyable value={device[:ip] || device[:target]} />
                     </div>
+                    <div
+                      :if={@mcp[device[:target]]}
+                      id={"mcp-#{device[:id]}"}
+                      class="mt-1.5 flex items-center gap-2"
+                    >
+                      <span class="nd-chip nd-chip-live">
+                        <span class="nd-led"></span> MCP
+                      </span>
+                      <.mcp_address device={device} url={@mcp[device[:target]].url} />
+                    </div>
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
@@ -320,6 +356,14 @@ defmodule NervesDesktopWeb.HomeLive do
                   <td class="px-4 py-3">
                     <div class="flex items-center justify-end gap-1.5">
                       <.link
+                        :if={@mcp[device[:target]]}
+                        id={"mcp-log-#{device[:id]}"}
+                        navigate={log_path(device)}
+                        class="nd-btn nd-btn-ghost"
+                      >
+                        <.icon name="hero-document-text" class="size-4" /> Log
+                      </.link>
+                      <.link
                         navigate={
                           ~p"/console?target=#{device[:target]}&name=#{device[:name] || device[:hostname]}"
                         }
@@ -329,13 +373,17 @@ defmodule NervesDesktopWeb.HomeLive do
                       </.link>
 
                       <UI.menu
-                        :if={device[:type] == :network}
                         id={device[:id]}
                         open={@open_menu == device[:id]}
                         label={"Actions for #{device[:name]}"}
                       >
-                        <.catalog_item device={device} status={@firmware_status[device[:id]]} />
+                        <.catalog_item
+                          :if={device[:type] == :network}
+                          device={device}
+                          status={@firmware_status[device[:id]]}
+                        />
                         <button
+                          :if={device[:type] == :network}
                           type="button"
                           role="menuitem"
                           phx-click="update_from_file"
@@ -346,6 +394,26 @@ defmodule NervesDesktopWeb.HomeLive do
                         >
                           <.icon name="hero-document-arrow-up" class="size-4" /> Update from file…
                         </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          id={"mcp-toggle-#{device[:id]}"}
+                          phx-click={if(@mcp[device[:target]], do: "stop_mcp", else: "start_mcp")}
+                          phx-value-id={device[:id]}
+                          class="nd-menu-item"
+                        >
+                          <.icon name="hero-server-stack" class="size-4" />
+                          {if(@mcp[device[:target]], do: "Stop MCP server", else: "Start MCP server")}
+                        </button>
+                        <.link
+                          :if={!@mcp[device[:target]] && MCP.log_path(device[:target])}
+                          role="menuitem"
+                          id={"mcp-last-log-#{device[:id]}"}
+                          navigate={log_path(device)}
+                          class="nd-menu-item"
+                        >
+                          <.icon name="hero-document-text" class="size-4" /> View last MCP log
+                        </.link>
                       </UI.menu>
                     </div>
                   </td>
@@ -378,6 +446,48 @@ defmodule NervesDesktopWeb.HomeLive do
         <pre class="nd-well nd-code mt-4 overflow-x-auto p-4"><code>{@mdns_html}</code></pre>
       </UI.panel>
     </Layouts.app>
+    """
+  end
+
+  defp log_path(device) do
+    ~p"/mcp/log?target=#{device[:target]}&name=#{device[:name] || device[:hostname] || device[:target]}"
+  end
+
+  attr :device, :map, required: true
+  attr :url, :string, required: true
+
+  # Hovering the address offers the command that adds it to an agent, named
+  # after the device so several of them stay tellable apart in the client.
+  defp mcp_address(assigns) do
+    assigns = assign(assigns, name: MCP.client_name(assigns.device))
+
+    ~H"""
+    <div id={"mcp-copy-#{@device[:id]}"} phx-hook="HoverPanel">
+      <UI.copyable value={@url} />
+      <div data-panel role="menu" class="nd-menu" hidden>
+        <button
+          type="button"
+          role="menuitem"
+          id={"mcp-copy-url-#{@device[:id]}"}
+          phx-click={JS.dispatch("phx:copy", detail: %{text: @url})}
+          title={@url}
+          class="nd-menu-item"
+        >
+          <.icon name="hero-clipboard" class="size-4" /> Copy URL
+        </button>
+        <button
+          :for={{agent, label} <- [claude_code: "Claude Code", codex: "Codex"]}
+          type="button"
+          role="menuitem"
+          id={"mcp-copy-#{agent}-#{@device[:id]}"}
+          phx-click={JS.dispatch("phx:copy", detail: %{text: MCP.add_command(agent, @name, @url)})}
+          title={MCP.add_command(agent, @name, @url)}
+          class="nd-menu-item"
+        >
+          <.icon name="hero-clipboard" class="size-4" /> Copy for {label}
+        </button>
+      </div>
+    </div>
     """
   end
 
@@ -478,7 +588,7 @@ defmodule NervesDesktopWeb.HomeLive do
   defp phase_label(:starting), do: "Starting…"
   defp phase_label(:downloading), do: "Downloading"
   defp phase_label(:uploading), do: "Uploading"
-  defp phase_label(:rebooting), do: "Sent — rebooting"
+  defp phase_label(:rebooting), do: "Sent, rebooting"
   defp phase_label(other), do: to_string(other)
 
   defp format_error(:no_fwup_subsystem, target),

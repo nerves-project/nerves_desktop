@@ -12,7 +12,7 @@ defmodule NervesDesktop.Firmware.ReleaseIndexTest do
     uuid: "7e2ab1b1-1882-5841-7382-ad4ada05a00d"
   }
 
-  describe "compare/2 — the rule the badge is drawn from" do
+  describe "compare/2, the rule the badge is drawn from" do
     test "matching uuids mean the device is current" do
       release = %{version: "0.16.2", uuid: @device.uuid, url: "u"}
 
