@@ -136,10 +136,7 @@ defmodule NervesDesktopWeb.UI do
           type="select"
           label="Device"
           disabled={@status != :disconnected}
-          options={[
-            {"Select a device", ""}
-            | Enum.map(@devices, &{&1[:name] || &1[:hostname], &1[:target]})
-          ]}
+          options={device_options(@devices)}
         />
       </div>
 
@@ -166,6 +163,18 @@ defmodule NervesDesktopWeb.UI do
     </.form>
     """
   end
+
+  defp device_options(devices) do
+    {other, known} = Enum.split_with(devices, &NervesDesktop.Device.unknown?/1)
+    known_options = [{"Select a device", ""} | Enum.map(known, &device_option/1)]
+
+    case other do
+      [] -> known_options
+      other -> known_options ++ [{"Other hosts", Enum.map(other, &device_option/1)}]
+    end
+  end
+
+  defp device_option(device), do: {device[:name] || device[:hostname], device[:target]}
 
   @doc """
   Renders an empty or waiting state inside a panel.

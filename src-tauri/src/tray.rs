@@ -124,7 +124,7 @@ fn build_menu(app: &AppHandle, devices: &Devices) -> tauri::Result<Menu<tauri::W
     }
 
     if !devices.other.is_empty() {
-        let other = Submenu::new(app, "Other Devices", true)?;
+        let other = Submenu::new(app, "Other hosts", true)?;
 
         for device in &devices.other {
             other.append(&device_menu(app, device)?)?;
