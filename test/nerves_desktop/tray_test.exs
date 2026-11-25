@@ -49,10 +49,10 @@ defmodule NervesDesktop.TrayTest do
            ]
   end
 
-  test "serial adapters are listed with the other devices and offer their port" do
+  test "serial adapters are listed with the Nerves devices and offer their port" do
     devices = Device.from_uart([{"/dev/ttyUSB0", %{vendor_id: 0x0403, manufacturer: "Acme"}}])
 
-    assert %{"nerves" => [], "other" => [entry]} = payload(devices)
+    assert %{"nerves" => [entry], "other" => []} = payload(devices)
     assert entry["label"] == "Acme (/dev/ttyUSB0)"
     assert entry["console"] == "/console?target=%2Fdev%2FttyUSB0&name=Acme&connect=true"
     assert entry["copy"] == [%{"label" => "Copy port", "value" => "/dev/ttyUSB0"}]

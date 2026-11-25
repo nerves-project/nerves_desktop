@@ -28,6 +28,18 @@ defmodule NervesDesktopWeb.ConsoleLiveTest do
     assert has_element?(view, "#flash-error")
   end
 
+  test "groups unknown hosts under Other hosts in the device picker", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/console")
+
+    nerves = %{name: "nerves-1234", target: "nerves-1234.local", type: :network, nerves?: true}
+    nas = %{name: "nas", target: "nas.local", type: :network, nerves?: false}
+    send(view.pid, {:devices_updated, [nas, nerves]})
+
+    assert has_element?(view, "#connection-form optgroup[label='Other hosts'] option", "nas")
+    refute has_element?(view, "#connection-form optgroup option", "nerves-1234")
+    assert has_element?(view, "#connection-form option", "nerves-1234")
+  end
+
   describe "prefilling a known image's password" do
     setup %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/console")

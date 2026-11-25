@@ -7,6 +7,7 @@ defmodule NervesDesktop.Tray do
   its console lives, and what can be copied from it.
   """
 
+  alias NervesDesktop.Device
   alias NervesDesktop.Native
 
   @topic "tray"
@@ -22,10 +23,10 @@ defmodule NervesDesktop.Tray do
   """
   @spec payload([map()]) :: binary()
   def payload(devices) do
-    {nerves, other} =
+    {other, nerves} =
       devices
       |> Enum.sort_by(&String.downcase(label(&1)))
-      |> Enum.split_with(&(&1[:nerves?] == true))
+      |> Enum.split_with(&Device.unknown?/1)
 
     Jason.encode!(%{nerves: Enum.map(nerves, &entry/1), other: Enum.map(other, &entry/1)})
   end
