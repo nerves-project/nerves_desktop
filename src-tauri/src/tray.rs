@@ -8,8 +8,10 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 const TRAY_ID: &str = "main";
 const OPEN: &str = "open";
 const QUIT: &str = "quit";
-const CONSOLE_PREFIX: &str = "console:";
+const OPEN_PREFIX: &str = "open:";
 const COPY_PREFIX: &str = "copy:";
+const ACTION_PREFIX: &str = "action:";
+const ACTION_TOPIC: &str = "tray_action";
 
 #[derive(Default)]
 pub struct LastPayload(Mutex<Vec<u8>>);
@@ -25,6 +27,16 @@ struct Device {
     label: String,
     console: String,
     copy: Vec<CopyItem>,
+    #[serde(default)]
+    mcp: Vec<Item>,
+}
+
+// Opens a page in the app, or hands an action back to Elixir.
+#[derive(Deserialize)]
+struct Item {
+    label: String,
+    open: Option<String>,
+    action: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -151,7 +163,7 @@ fn device_menu(app: &AppHandle, device: &Device) -> tauri::Result<Submenu<tauri:
 
     submenu.append(&MenuItem::with_id(
         app,
-        format!("{CONSOLE_PREFIX}{}", device.console),
+        format!("{OPEN_PREFIX}{}", device.console),
         "Open Console",
         true,
         None::<&str>,
@@ -167,6 +179,26 @@ fn device_menu(app: &AppHandle, device: &Device) -> tauri::Result<Submenu<tauri:
         )?)?;
     }
 
+    if !device.mcp.is_empty() {
+        submenu.append(&PredefinedMenuItem::separator(app)?)?;
+    }
+
+    for item in &device.mcp {
+        let id = match (&item.open, &item.action) {
+            (Some(path), _) => format!("{OPEN_PREFIX}{path}"),
+            (None, Some(action)) => format!("{ACTION_PREFIX}{action}"),
+            (None, None) => continue,
+        };
+
+        submenu.append(&MenuItem::with_id(
+            app,
+            id,
+            &item.label,
+            true,
+            None::<&str>,
+        )?)?;
+    }
+
     Ok(submenu)
 }
 
@@ -175,8 +207,12 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
         crate::show_main_window(app);
     } else if id == QUIT {
         app.exit(0);
-    } else if let Some(path) = id.strip_prefix(CONSOLE_PREFIX) {
+    } else if let Some(path) = id.strip_prefix(OPEN_PREFIX) {
         crate::open_path(app, path);
+    } else if let Some(action) = id.strip_prefix(ACTION_PREFIX) {
+        if let Some(pubsub) = app.try_state::<elixirkit::PubSub>() {
+            let _ = pubsub.broadcast(ACTION_TOPIC, action.as_bytes());
+        }
     } else if let Some(value) = id.strip_prefix(COPY_PREFIX) {
         if let Err(error) = app.clipboard().write_text(value) {
             eprintln!("[rust] failed to copy to clipboard: {error}");
