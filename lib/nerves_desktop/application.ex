@@ -21,6 +21,7 @@ defmodule NervesDesktop.Application do
       {NervesDesktop.Firmware.ReleaseIndex, []},
       {NervesDesktop.HostInfo, []},
       {NervesDesktop.MCP, Application.get_env(:nerves_desktop, NervesDesktop.MCP, [])},
+      {NervesDesktop.Tray, []},
       NervesDesktopWeb.Endpoint,
       {Task,
        fn ->

@@ -1,10 +1,12 @@
 defmodule NervesDesktop.TrayTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias NervesDesktop.Device
+  alias NervesDesktop.MCP
   alias NervesDesktop.Tray
 
-  defp payload(devices), do: devices |> Tray.payload() |> Jason.decode!()
+  defp payload(devices), do: devices_payload(devices, %{})
+  defp devices_payload(devices, servers), do: devices |> Tray.payload(servers) |> Jason.decode!()
 
   test "splits Nerves devices from everything else" do
     devices = [
@@ -65,5 +67,64 @@ defmodule NervesDesktop.TrayTest do
       end
 
     assert %{"nerves" => [%{"label" => "Nerves-a"}, %{"label" => "nerves-b"}]} = payload(devices)
+  end
+
+  test "a device without an MCP server offers to start one" do
+    device = Device.from_network(%{name: "nerves-1234", hostname: "nerves-1234.local"})
+
+    assert %{"nerves" => [entry]} = payload([device])
+
+    assert entry["mcp"] == [
+             %{"label" => "Start MCP server", "action" => "start_mcp:#{device.id}"}
+           ]
+  end
+
+  test "a running MCP server shows its status, which opens its log" do
+    device = Device.from_network(%{name: "nerves-1234", hostname: "nerves-1234.local"})
+    servers = %{device.target => %{port: 13_003}}
+
+    assert %{"nerves" => [entry]} = devices_payload([device], servers)
+
+    assert entry["mcp"] == [
+             %{
+               "label" => "MCP running on port 13003",
+               "open" => "/mcp/log?target=nerves-1234.local&name=nerves-1234"
+             },
+             %{"label" => "Stop MCP server", "action" => "stop_mcp:#{device.id}"}
+           ]
+  end
+
+  describe "actions chosen from the menu" do
+    @moduletag capture_log: true
+
+    # A serial port that does not exist: the server runs and just keeps retrying.
+    @port "/dev/nerves-desktop-tray-test"
+
+    setup do
+      on_exit(fn -> MCP.stop_server(@port) end)
+
+      [device] = Device.from_uart([{@port, %{vendor_id: 0x0403, manufacturer: "Acme"}}])
+      tray = start_supervised!({Tray, name: :tray_under_test})
+      Tray.update(tray, [device])
+      Phoenix.PubSub.subscribe(NervesDesktop.PubSub, MCP.topic())
+
+      %{tray: tray, device: device}
+    end
+
+    test "start and stop the device's MCP server", %{tray: tray, device: device} do
+      send(tray, "start_mcp:#{device.id}")
+      assert_receive {:mcp_changed, %{@port => _server}}, 15_000
+
+      send(tray, "stop_mcp:#{device.id}")
+      assert_receive {:mcp_changed, servers}, 15_000
+      refute Map.has_key?(servers, @port)
+    end
+
+    test "an action for a device that has gone does nothing", %{tray: tray} do
+      send(tray, "start_mcp:uart:/dev/gone")
+      _ = :sys.get_state(tray)
+
+      refute_receive {:mcp_changed, _}, 200
+    end
   end
 end
